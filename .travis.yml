@@ -1,0 +1,40 @@
+language: python
+python:
+- '2.7'
+- '3.4'
+- 'pypy'
+env:
+- CMAKE_VERSION="3.1"
+- CMAKE_VERSION="2.8"
+install:
+- if [ ${CMAKE_VERSION} == "3.1" ]; then
+     sudo apt-get -y purge cmake;
+     sudo add-apt-repository -y ppa:kubuntu-ppa/beta;
+     sudo apt-get update;
+     sudo apt-get install cmake;
+  fi
+- pip install -r requirements.txt
+- pip install polysquare-generic-file-linter python-coveralls flake8 pep8-naming pylint coverage
+- gem install mdl
+script:
+- python setup.py build
+- coverage run --source=cmakeast setup.py test
+- python setup.py install
+- pylint -f colorized tests/ cmakeast/ --disable=r0903,R0904
+- flake8 tests/ cmakeast/
+- mdl .
+- find cmakeast tests -type f -name "*.py" | xargs -L 1 polysquare-generic-file-linter
+after_success:
+- coverage report -m
+- coveralls
+- rm -rf polysquare_generic_file_linter.egg-info/
+- rm -rf build/
+deploy:
+  provider: pypi
+  user:
+    secure: CtbbLFM7+9o+skLwdzjBsU7S7LbmmCfiZs947+CSFqs+kkAzTghIGllYHZHmd6W2FKjM7E3hiBvGrgkSRIJzygjwvEfXbp8kwFdpOyWVj3wy7/FpERxha4nWRfnU0/pyJJyIEPdo55YVqd72VU0grqu6BDfCXTKacTzD8ZSV58U=
+  password:
+    secure: ZnhModnrfduaNAor01dfPy+y/46fY35DkNuLEeJxEGaXZE12TFLLd1OLwZ/9SJsSKKq2NVQ976ufXJ5O+WjfN/xCJHkGyeqxYhQzX5unkiEApOaVJzj3vrmjDSYM+cEnA3MA9L2mY096+VGnqieUEoxNePEhAUCzP8AyCX5+6XQ=
+  on:
+    repo: polysquare/cmake-ast
+    branch: master
