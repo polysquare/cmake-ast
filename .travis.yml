@@ -32,9 +32,9 @@ after_success:
 deploy:
   provider: pypi
   user:
-    secure: CtbbLFM7+9o+skLwdzjBsU7S7LbmmCfiZs947+CSFqs+kkAzTghIGllYHZHmd6W2FKjM7E3hiBvGrgkSRIJzygjwvEfXbp8kwFdpOyWVj3wy7/FpERxha4nWRfnU0/pyJJyIEPdo55YVqd72VU0grqu6BDfCXTKacTzD8ZSV58U=
+    secure: n+N1B9CiMyHM2SMdkCfRqUk7CIWYA9mtlez7lQW7iCLQNYCvEoZprvUnlvUlKUdafwBWi543Ezes+VTm3cyC9NoTL/NKfFZ4J8ZpBl4JGJJNfnKlXjBsmp2LFCySDVFwft1ed9miIjqkzsYTD2ohyBX+An70yfxMHfQ5DnS3D1Y=
   password:
-    secure: ZnhModnrfduaNAor01dfPy+y/46fY35DkNuLEeJxEGaXZE12TFLLd1OLwZ/9SJsSKKq2NVQ976ufXJ5O+WjfN/xCJHkGyeqxYhQzX5unkiEApOaVJzj3vrmjDSYM+cEnA3MA9L2mY096+VGnqieUEoxNePEhAUCzP8AyCX5+6XQ=
+    secure: i6YvJQnKlOj7kGVUwLn4gL6gYRPoX83IYusz/8GUyA8wz3p3Uiu5jtWwqpu3/U538ESfGFhbaj2bf9VtVbixpk/8+MrGYBVGM+42MB9VpLd6sADe0dqoyW2+yIgodeoLNxBKhK8wg0jVmEtSzRQuakSijlpWF+Pj9lit4GEhBcA=
   on:
     repo: polysquare/cmake-ast
     branch: master
