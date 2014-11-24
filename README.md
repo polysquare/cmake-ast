@@ -6,7 +6,7 @@ Status
 
 | Travis CI (Ubuntu) | AppVeyor (Windows) | Coverage | PyPI |
 |--------------------|--------------------|----------|------|
-|[![Travis](https://travis-ci.org/polysquare/cmake-ast.svg?branch=master)](https://travis-ci.org/polysquare/cmake-ast)|[![AppVeyor](https://ci.appveyor.com/api/projects/status/o6nnt968qyr2kitx?svg=true)](https://ci.appveyor.com/project/smspillaz/cmake-ast)|[![Coverage](https://coveralls.io/repos/polysquare/cmake-ast/badge.png?branch=master)](https://coveralls.io/r/polysquare/cmake-ast?branch=master)|[![PyPI](https://pypip.in/version/cmake-ast/badge.svg)](https://pypi.python.org/pypi/cmake-ast/)|
+|[![Travis](https://travis-ci.org/polysquare/cmake-ast.svg?branch=master)](https://travis-ci.org/polysquare/cmake-ast)|[![AppVeyor](https://ci.appveyor.com/api/projects/status/o6nnt968qyr2kitx?svg=true)](https://ci.appveyor.com/project/smspillaz/cmake-ast)|[![Coverage](https://coveralls.io/repos/polysquare/cmake-ast/badge.png?branch=master)](https://coveralls.io/r/polysquare/cmake-ast?branch=master)|[![PyPI](https://pypip.in/version/cmakeast/badge.svg)](https://pypi.python.org/pypi/cmakeast/)|
 
 `cmake-ast` has been tested against every single CMake module that ships with
 recent versions of CMake. These tests also run in the continuous integration
