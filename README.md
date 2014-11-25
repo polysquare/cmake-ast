@@ -17,11 +17,13 @@ Usage
 -----
 
 Import `cmakeast` and ASTify the contents of a cmake file with
-`cmakeast.ast.parse(contents)`. The return will be a toplevel node, with
-node descriptions as follows:
+`cmakeast.ast.parse(contents)`. You can also pass it a list of tokens obtained
+by tokenization with the `tokens` keyword argument. The return will be a
+toplevel node, with node descriptions as follows:
 
 `Word`
-- (One) `Type` `type: Variable | Literal | VariableDereference`
+- (One) `Type`
+  * `type: Variable | String | Number | CompoundLiteral | VariableDereference`
 - (One) `String` `contents`
 
 `Body`
@@ -64,12 +66,38 @@ node descriptions as follows:
 Each node also has a `line` and `col` member to indicate where it can be
 found in the source file.
 
+Traversing the AST
+------------------
+
+CMake-AST provides a helper module `ast_visitor` to make traversing the AST
+less verbose. It will traverse every single node by default. Listeners
+matching the signature `def handler (name, node, depth)` can be passed as
+the following keyword arguments to `recurse (body, **kwargs)`:
+
+------------------------------------------
+| Keyword         | Handles Node Type    |
+|:---------------:|:--------------------:|
+| `toplevel`      | `ToplevelBody`       |
+| `while_stmnt`   | `WhileStatement`     |
+| `foreach`       | `ForeachStatement`   |
+| `function_def`  | `FunctionDefinition` |
+| `macro_def`     | `MacroDefinition`    |
+| `if_block`      | `IfBlock`            |
+| `if_stmnt`      | `IfStatement`        |
+| `elseif_stmnt`  | `ElseIfStatement`    |
+| `else_stmnt`    | `ElseStatement`      |
+| `function_call` | `FunctionCall`       |
+| `word`          | `Word`               |
+
 Dumping the AST of a CMake file
 -------------------------------
 
 If you wish to dump the AST of a cmake file, the `cmake-print-ast` tool is
 also provided. Pass a single filename to dump the AST of to it on the
 command line
+
+Tokenization
+------------
 
 To get an even lower level representation, use `cmakeast.ast.tokenize(contents)`
 which divides the file only into tokens.

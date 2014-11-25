@@ -7,7 +7,11 @@
 
 
 Word
-- (One) Type [type: Variable | Literal | VariableDereference]
+- (One) Type [type: Variable |
+                    Number   |
+                    String   |
+                    CompoundLiteral |
+                    VariableDereference]
 - (One) String [contents]
 Body
 - (Many) (FunctionCall     |
@@ -46,18 +50,19 @@ WhileStatement
 from collections import namedtuple
 import re
 
-Word = namedtuple("Word", "type contents line col")
-FunctionCall = namedtuple("FunctionCall", "name arguments line col")
+Word = namedtuple("Word", "type contents line col index")
+FunctionCall = namedtuple("FunctionCall", "name arguments line col index")
 FunctionDefinition = namedtuple("FunctionDefinition",
-                                "header body line col")
-MacroDefinition = namedtuple("MacroDefinition", "header body line col")
-IfStatement = namedtuple("IfStatement", "header body line col")
-ElseIfStatement = namedtuple("ElseIfStatement", "header body line col")
-ElseStatement = namedtuple("ElseStatement", "header body line col")
+                                "header body line col index")
+MacroDefinition = namedtuple("MacroDefinition", "header body line col index")
+IfStatement = namedtuple("IfStatement", "header body line col index")
+ElseIfStatement = namedtuple("ElseIfStatement", "header body line col index")
+ElseStatement = namedtuple("ElseStatement", "header body line col index")
 IfBlock = namedtuple("IfBlock",
-                     "if_statement elseif_statements else_statement line col")
-ForeachStatement = namedtuple("ForeachStatement", "header body line col")
-WhileStatement = namedtuple("WhileStatement", "header body line col")
+                     "if_statement elseif_statements else_statement"
+                     " line col index")
+ForeachStatement = namedtuple("ForeachStatement", "header body line col index")
+WhileStatement = namedtuple("WhileStatement", "header body line col index")
 ToplevelBody = namedtuple("ToplevelBody", "statements")
 
 GenericBody = namedtuple("GenericBody", "statements arguments")
@@ -135,7 +140,8 @@ def _make_header_body_handler(end_body_regex, node_constructor):
         return (token_index, node_constructor(header=function_call,
                                               body=body.statements,
                                               line=tokens[body_index].line,
-                                              col=tokens[body_index].col))
+                                              col=tokens[body_index].col,
+                                              index=body_index))
 
     return handler
 
@@ -194,7 +200,8 @@ def _handle_if_block(tokens, tokens_len, body_index, function_call):
                                elseif_statements=elseif_statements,
                                else_statement=else_statement,
                                line=if_statement.line,
-                               col=if_statement.col)
+                               col=if_statement.col,
+                               index=body_index)
 
 
 FUNCTION_CALL_DISAMBIGUATE = {
@@ -228,7 +235,8 @@ def _handle_function_call(tokens, tokens_len, index):
     function_call = FunctionCall(name=tokens[index].content,
                                  arguments=call_body.arguments,
                                  line=tokens[index].line,
-                                 col=tokens[index].col)
+                                 col=tokens[index].col,
+                                 index=index)
 
     # Next find a handler for the body and pass control to that
     try:
@@ -273,7 +281,8 @@ def _ast_worker(tokens, tokens_len, index, term):
             arguments.append(Word(type=_word_type(tokens[index].type),
                                   contents=tokens[index].content,
                                   line=tokens[index].line,
-                                  col=tokens[index].col))
+                                  col=tokens[index].col,
+                                  index=index))
 
         index = index + 1
 
@@ -712,10 +721,13 @@ def tokenize(contents):
     return tokens
 
 
-def parse(contents):
+def parse(contents, tokens=None):
     """Parse a string called contents for an AST and return it"""
 
-    tokens = [t for t in tokenize(contents)]
+    # Shortcut for users who are interested in tokens
+    if tokens is None:
+        tokens = [t for t in tokenize(contents)]
+
     token_index, body = _ast_worker(tokens, len(tokens), 0, None)
 
     assert token_index == len(tokens)
