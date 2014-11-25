@@ -7,7 +7,7 @@
 from setuptools import setup, find_packages
 
 setup(name='cmakeast',
-      version='0.0.1',
+      version='0.0.2',
       description='CMake AST',
       long_description='Reduce a CMake file to an abstract syntax tree',
       author='Sam Spilsbury',
@@ -19,6 +19,7 @@ setup(name='cmakeast',
            'License :: OSI Approved :: MIT License',
            'Programming Language :: Python :: 3',
       ],
+      url='http://github.com/polysquare/cmake-ast',
       license='MIT',
       keywords='development ast cmake',
       packages=find_packages(exclude=['tests']),
