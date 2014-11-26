@@ -68,7 +68,8 @@ ToplevelBody = namedtuple("ToplevelBody", "statements")
 GenericBody = namedtuple("GenericBody", "statements arguments")
 
 _RE_VARIABLE_DEREF = re.compile(r"\$\{[A-za-z0-9_]+\}")
-_RE_WORD_TYPE = re.compile(r"(word|quoted_literal|unquoted_literal|number)")
+_RE_WORD_TYPE = re.compile(r"(word|quoted_literal|unquoted_literal|"
+                           "number|deref)")
 _RE_END_IF_BODY = re.compile(r"(endif|else|elseif)")
 _RE_ENDFUNCTION = re.compile(r"endfunction")
 _RE_ENDMACRO = re.compile(r"endmacro")
