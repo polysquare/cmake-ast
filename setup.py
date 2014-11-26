@@ -7,7 +7,7 @@
 from setuptools import setup, find_packages
 
 setup(name='cmakeast',
-      version='0.0.2',
+      version='0.0.3',
       description='CMake AST',
       long_description='Reduce a CMake file to an abstract syntax tree',
       author='Sam Spilsbury',

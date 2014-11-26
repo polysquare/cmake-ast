@@ -107,6 +107,19 @@ class TestParseWord(unittest.TestCase):
         self.assertEqual(parse_result.type, "Variable")
         self.assertEqual(parse_result.contents, string)
 
+    def test_parse_variable_deref_type(self):
+        """Parse a word from an argument and its type is VariableDereference
+
+
+        Variable types are alphanums and underscore inside of a dereference,
+        (eg ${VARIABLE})
+        """
+        variable = "VARIABLE"
+        variable_deref = "${" + variable + "}"
+        parse_result = parse_for_word(variable_deref)
+        self.assertEqual(parse_result.type, "VariableDereference")
+        self.assertEqual(parse_result.contents, variable_deref)
+
     @parameterized.expand([
         "0ABC",
         "ARG${ABC}/ABC",
