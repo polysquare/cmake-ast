@@ -36,16 +36,16 @@ toplevel node, with node descriptions as follows:
 `FunctionDefinition`
 - (One) `FunctionCall` `header`
 - (One) `Body` `body`
+- (One) `FunctionCall` `footer`
 
 `MacroDefinition`
 - (One) `FunctionCall` `header`
 - (One) `Body` `body`
+- (One) `FunctionCall` `footer`
 
 `IfStatement`
 - (One) `FunctionCall` `header`
 - (One) `Body` `body`
-- (Many) `ElseIfStatement` `else_ifs`
-- (One Optional) `ElseStatement` `else_statement`
 
 `ElseIfStatement`
 - (One) `FunctionCall` `header`
@@ -55,13 +55,21 @@ toplevel node, with node descriptions as follows:
 - (One) `FunctionCall` `header`
 - (One) `Body` `body`
 
+`IfBlock`
+- (One) `IfStatement` `if_statement`
+- (Many) `ElseIfStatement` `else_ifs`
+- (One Optional) `ElseStatement` `else_statement`
+- (One) `FunctionCall` `footer`
+
 `ForeachStatement`
 - (One) `FunctionCall` `foreach_function`
 - (One) `Body` `body`
+- (One) `FunctionCall` `footer`
 
 `WhileStatement`
 - (One) `FunctionCall` `while_function`
 - (One) `Body` `body`
+- (One) `FunctionCall` `footer`
 
 Each node also has a `line` and `col` member to indicate where it can be
 found in the source file.
