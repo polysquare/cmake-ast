@@ -37,23 +37,22 @@ def _print_details(extra=None):
 
 def do_print(filename):
     """Print the AST of filename"""
-    cmake_file = open(filename)
-    body = ast.parse(cmake_file.read())
+    with open(filename) as cmake_file:
+        body = ast.parse(cmake_file.read())
 
-    word_print = _print_details(lambda n: "{0} {1}".format(n.type, n.contents))
-    ast_visitor.recurse(body,
-                        while_stmnt=_print_details(),
-                        foreach=_print_details(),
-                        function_def=_print_details(),
-                        macro_def=_print_details(),
-                        if_block=_print_details(),
-                        if_stmnt=_print_details(),
-                        elseif_stmnt=_print_details(),
-                        else_stmnt=_print_details(),
-                        function_call=_print_details(lambda n: n.name),
-                        word=word_print)
-
-    cmake_file.close()
+        word_print = _print_details(lambda n: "{0} {1}".format(n.type,
+                                                               n.contents))
+        ast_visitor.recurse(body,
+                            while_stmnt=_print_details(),
+                            foreach=_print_details(),
+                            function_def=_print_details(),
+                            macro_def=_print_details(),
+                            if_block=_print_details(),
+                            if_stmnt=_print_details(),
+                            elseif_stmnt=_print_details(),
+                            else_stmnt=_print_details(),
+                            function_call=_print_details(lambda n: n.name),
+                            word=word_print)
 
 
 def main():

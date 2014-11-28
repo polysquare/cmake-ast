@@ -24,14 +24,18 @@ FunctionCall
 FunctionDefinition
 - (One) FunctionCall [header]
 - (One) Body [body]
+- (One) FunctionCall [footer]
 MacroDefinition
 - (One) FunctionCall [header]
 - (One) Body [body]
+- (One) FunctionCall [footer]
+IfBlock
+- (One) IfStatement [if_statement]
+- (Many) ElseIfStatement [elseif_statements]
+- (One Optional) ElseStatement [else_statement]
 IfStatement
 - (One) FunctionCall [header]
 - (One) Body [body]
-- (Many) ElseIfStatement [else_ifs]
-- (One Optional) ElseStatement [else_statement]
 ElseIfStatement
 - (One) FunctionCall [header]
 - (One) Body [body]
@@ -41,9 +45,13 @@ ElseStatement
 ForeachStatement
 - (One) FunctionCall [foreach_function]
 - (One) Body [body]
+- (One) FunctionCall [footer]
 WhileStatement
 - (One) FunctionCall [while_function]
 - (One) Body [body]
+- (One) FunctionCall [footer]
+ToplevelBody
+- (One) Body [statements]
 
 """
 
@@ -53,16 +61,19 @@ import re
 Word = namedtuple("Word", "type contents line col index")
 FunctionCall = namedtuple("FunctionCall", "name arguments line col index")
 FunctionDefinition = namedtuple("FunctionDefinition",
-                                "header body line col index")
-MacroDefinition = namedtuple("MacroDefinition", "header body line col index")
+                                "header body line col index footer")
+MacroDefinition = namedtuple("MacroDefinition",
+                             "header body line col index footer")
 IfStatement = namedtuple("IfStatement", "header body line col index")
 ElseIfStatement = namedtuple("ElseIfStatement", "header body line col index")
 ElseStatement = namedtuple("ElseStatement", "header body line col index")
 IfBlock = namedtuple("IfBlock",
                      "if_statement elseif_statements else_statement"
-                     " line col index")
-ForeachStatement = namedtuple("ForeachStatement", "header body line col index")
-WhileStatement = namedtuple("WhileStatement", "header body line col index")
+                     " line col index footer")
+ForeachStatement = namedtuple("ForeachStatement",
+                              "header body line col index footer")
+WhileStatement = namedtuple("WhileStatement",
+                            "header body line col index footer")
 ToplevelBody = namedtuple("ToplevelBody", "statements")
 
 GenericBody = namedtuple("GenericBody", "statements arguments")
@@ -80,18 +91,6 @@ _RE_END_QUOTED = re.compile(r"end_(single|double)_quoted_literal")
 _RE_QUOTE_TYPE = re.compile(r"[\"\']")
 _RE_PAREN_TYPE = re.compile(r"[\(\)]")
 _RE_IN_COMMENT_TYPE = re.compile(r"(comment|newline|whitespace|.*rst.*)")
-
-
-def _advance_until(token_index, tokens, token_type):
-    """Advance token_index until token_type is reached"""
-    try:
-        while tokens[token_index].type != token_type:
-            token_index = token_index + 1
-    except IndexError:
-        raise RuntimeError("Syntax error")
-
-    return token_index
-
 
 WORD_TYPES_DISPATCH = {
     "quoted_literal": "String",
@@ -117,7 +116,9 @@ def _word_type(token_type):
     return WORD_TYPES_DISPATCH[token_type]
 
 
-def _make_header_body_handler(end_body_regex, node_constructor):
+def _make_header_body_handler(end_body_regex,
+                              node_factory,
+                              has_footer=True):
     """Utility function to make a handler for header-body node
 
 
@@ -129,27 +130,45 @@ def _make_header_body_handler(end_body_regex, node_constructor):
         def _end_header_body_definition(token_index, tokens):
             """Header body termination function"""
             if end_body_regex.match(tokens[token_index].content):
-                if tokens[token_index + 1].type == "left paren":
-                    return True
+                try:
+                    if tokens[token_index + 1].type == "left paren":
+                        return True
+                except IndexError:
+                    raise RuntimeError("Syntax Error")
 
             return False
 
         token_index, body = _ast_worker(tokens, tokens_len, body_index,
                                         _end_header_body_definition)
-        # Advance until end of terminator statement
-        token_index = _advance_until(token_index, tokens, "right paren")
-        return (token_index, node_constructor(header=function_call,
-                                              body=body.statements,
-                                              line=tokens[body_index].line,
-                                              col=tokens[body_index].col,
-                                              index=body_index))
+
+        extra_kwargs = {}
+
+        if has_footer:
+            # Handle footer
+            token_index, footer = _handle_function_call(tokens,
+                                                        tokens_len,
+                                                        token_index)
+            extra_kwargs = {"footer": footer}
+
+        return (token_index,
+                node_factory(header=function_call,  # pylint:disable=star-args
+                             body=body.statements,
+                             line=tokens[body_index].line,
+                             col=tokens[body_index].col,
+                             index=body_index,
+                             **extra_kwargs))
 
     return handler
 
-IF_BLOCK_IF_HANDLER = _make_header_body_handler(_RE_END_IF_BODY, IfStatement)
+IF_BLOCK_IF_HANDLER = _make_header_body_handler(_RE_END_IF_BODY,
+                                                IfStatement,
+                                                has_footer=False)
 ELSEIF_BLOCK_HANDLER = _make_header_body_handler(_RE_END_IF_BODY,
-                                                 ElseIfStatement)
-ELSE_BLOCK_HANDLER = _make_header_body_handler(_RE_END_IF_BODY, ElseStatement)
+                                                 ElseIfStatement,
+                                                 has_footer=False)
+ELSE_BLOCK_HANDLER = _make_header_body_handler(_RE_END_IF_BODY,
+                                               ElseStatement,
+                                               has_footer=False)
 
 
 def _handle_if_block(tokens, tokens_len, body_index, function_call):
@@ -167,23 +186,25 @@ def _handle_if_block(tokens, tokens_len, body_index, function_call):
                                                    function_call)
     elseif_statements = []
     else_statement = None
+    footer = None
 
     # Keep going until we hit endif
     while True:
 
         # Back up a bit until we found out what terminated the if statement
         # body
-        terminator_index = next_index
-        while not _RE_END_IF_BODY.match(tokens[terminator_index].content):
-            terminator_index -= 1
+        assert _RE_END_IF_BODY.match(tokens[next_index].content)
 
-        terminator = tokens[terminator_index].content
+        terminator = tokens[next_index].content
         if terminator == "endif":
+            next_index, footer = _handle_function_call(tokens,
+                                                       tokens_len,
+                                                       next_index)
             break
 
         next_index, header = _handle_function_call(tokens,
                                                    tokens_len,
-                                                   terminator_index)
+                                                   next_index)
 
         if terminator == "elseif":
             next_index, elseif_statement = ELSEIF_BLOCK_HANDLER(tokens,
@@ -197,9 +218,12 @@ def _handle_if_block(tokens, tokens_len, body_index, function_call):
                                                             next_index + 1,
                                                             header)
 
+    assert footer is not None
+
     return next_index, IfBlock(if_statement=if_statement,
                                elseif_statements=elseif_statements,
                                else_statement=else_statement,
+                               footer=footer,
                                line=if_statement.line,
                                col=if_statement.col,
                                index=body_index)
@@ -233,6 +257,7 @@ def _handle_function_call(tokens, tokens_len, index):
     next_index, call_body = _ast_worker(tokens, tokens_len,
                                         index + 2,
                                         _end_function_call)
+
     function_call = FunctionCall(name=tokens[index].content,
                                  arguments=call_body.arguments,
                                  line=tokens[index].line,

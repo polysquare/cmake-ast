@@ -250,14 +250,13 @@ class TestParseFunctionCall(unittest.TestCase):
 
 class TestParseBodyStatement(unittest.TestCase):
     """Test parsing header/body statements generally"""
+
     def test_body_syntax_error(self):
-        """Syntax error reported where terminator does not have ()"""
-        script = "function (ABC)\nendfunction\n"
-
+        """Syntax error reported where function call does not have parens"""
         with self.assertRaises(RuntimeError) as context:
-            ast.parse(script)
+            ast.parse("function (func)\nendfunction")
 
-        self.assertEqual(str(context.exception), "Syntax error")
+        self.assertEqual(str(context.exception), "Syntax Error")
 
 
 class TestParseForeachStatement(unittest.TestCase):
@@ -291,6 +290,11 @@ class TestParseForeachStatement(unittest.TestCase):
         body = ast.parse(self.foreach_statement)
         self.assertEqual(body.statements[0].body[0].name, "message")
 
+    def test_foreach_footer_name(self):
+        """Parse for foreach footer, check if has name endforeach"""
+        body = ast.parse(self.foreach_statement)
+        self.assertEqual(body.statements[0].footer.name, "endforeach")
+
 
 class TestParseWhileStatement(unittest.TestCase):
     """Test case for parsing while statements"""
@@ -322,6 +326,11 @@ class TestParseWhileStatement(unittest.TestCase):
         """Check that the while body is a FunctionCall with name math"""
         body = ast.parse(self.while_statement)
         self.assertEqual(body.statements[0].body[0].name, "math")
+
+    def test_while_footer_name(self):
+        """Parse for while footer, check if has name endwhile"""
+        body = ast.parse(self.while_statement)
+        self.assertEqual(body.statements[0].footer.name, "endwhile")
 
 
 class TestParseFunctionDefintion(unittest.TestCase):
@@ -355,6 +364,11 @@ class TestParseFunctionDefintion(unittest.TestCase):
         body = ast.parse(self.function_definition)
         self.assertEqual(body.statements[0].body[0].name, "message")
 
+    def test_function_footer_name(self):
+        """Parse for function footer, check if has name endfunction"""
+        body = ast.parse(self.function_definition)
+        self.assertEqual(body.statements[0].footer.name, "endfunction")
+
 
 class TestParseMacroDefintion(unittest.TestCase):
     """Test case for parsing macro definitions"""
@@ -386,6 +400,11 @@ class TestParseMacroDefintion(unittest.TestCase):
         """Check that the macro body is a FunctionCall with name message"""
         body = ast.parse(self.macro_definition)
         self.assertEqual(body.statements[0].body[0].name, "message")
+
+    def test_macro_footer_name(self):
+        """Parse for macro footer, check if has name endmacro"""
+        body = ast.parse(self.macro_definition)
+        self.assertEqual(body.statements[0].footer.name, "endmacro")
 
 
 class TestParseIfBlock(unittest.TestCase):
@@ -474,6 +493,13 @@ class TestParseIfBlock(unittest.TestCase):
         body = ast.parse(script)
         function_definition = body.statements[0]
         self.assertTrue(isinstance(function_definition.body[0], ast.IfBlock))
+
+    def test_parse_for_endif_footer(self):
+        """Parse for footer (endif)"""
+        body = ast.parse(self.if_else_if_block)
+        self.assertTrue(isinstance(body.statements[0].footer,
+                                   ast.FunctionCall))
+        self.assertEqual(body.statements[0].footer.name, "endif")
 
 if __name__ == "__main__":
     unittest.main()
