@@ -20,7 +20,7 @@ def _parse_arguments():
 
 def _print_details(extra=None):
     """Returns a function that prints node details"""
-    def print_node_handler(name="", node=None, depth=0):
+    def print_node_handler(name, node, depth):
         """Standard printer for a node"""
         line = "{0}{1} {2} ({3}:{4})".format(depth,
                                              (" " * depth),
