@@ -63,7 +63,7 @@ def recurse(node, *args, **kwargs):
 
     # Invoke action if available
     if action is not None:
-        action(name=node_name, node=node, depth=depth)
+        action(node_name, node, depth)
 
     # Recurse
     recurse_kwargs = kwargs

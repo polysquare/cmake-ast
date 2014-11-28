@@ -11,6 +11,15 @@ from mock import MagicMock
 from testtools import TestCase
 from testtools.matchers import Contains
 
+def _make_ast_args_to_kwargs_wrapper(listener):
+    """Converts ast_visitor.recurse callback args to kwargs and forwards"""
+
+    def _ast_listener(name, node, depth):
+        """Forwards to listener"""
+
+        listener(name=name, node=node, depth=depth)
+
+    return _ast_listener
 
 class TestVisitASTRecursive(TestCase):
     """Test fixture for visit_ast_recursive"""
@@ -36,7 +45,8 @@ class TestVisitASTRecursive(TestCase):
         """Visit a {0} ({1}) node""".format(node_type, keyword)
         tree = ast.parse(script)
         listener = MagicMock()
-        keywords = {keyword: listener}
+        wrapper = _make_ast_args_to_kwargs_wrapper(listener)
+        keywords = {keyword: wrapper}
         ast_visitor.recurse(tree, **keywords)  # pylint:disable=star-args
         self.assertThat(listener.call_args_list[-1][1].items(),
                         Contains(("name", node_type)))
@@ -45,7 +55,8 @@ class TestVisitASTRecursive(TestCase):
         """Test arguments to a function call have depth"""
         tree = ast.parse("function_call (ARGUMENT)")
         listener = MagicMock()
-        ast_visitor.recurse(tree, word=listener)
+        wrapper = _make_ast_args_to_kwargs_wrapper(listener)
+        ast_visitor.recurse(tree, word=wrapper)
         self.assertThat(listener.call_args_list[-1][1].items(),
                         Contains(("depth", 2)))
 
@@ -53,6 +64,7 @@ class TestVisitASTRecursive(TestCase):
         """Test node body has depth"""
         tree = ast.parse("function_call (ARGUMENT)")
         listener = MagicMock()
-        ast_visitor.recurse(tree, function_call=listener)
+        wrapper = _make_ast_args_to_kwargs_wrapper(listener)
+        ast_visitor.recurse(tree, function_call=wrapper)
         self.assertThat(listener.call_args_list[-1][1].items(),
                         Contains(("depth", 1)))
