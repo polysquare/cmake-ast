@@ -89,10 +89,12 @@ _RE_ENDWHILE = re.compile(r"endwhile")
 _RE_BEGIN_QUOTED = re.compile(r"begin_(single|double)_quoted_literal")
 _RE_END_QUOTED = re.compile(r"end_(single|double)_quoted_literal")
 _RE_QUOTE_TYPE = re.compile(r"[\"\']")
-_RE_PAREN_TYPE = re.compile(r"[\(\)]")
+_RE_PAREN_TYPE = re.compile(r"left|right paren")
 _RE_IN_COMMENT_TYPE = re.compile(r"(comment|newline|whitespace|.*rst.*)")
+_RE_START_COMMENT = re.compile(r"(comment|(?<![^_])rst(?![^_]))")
+_RE_IS_RST = re.compile(r"(?<![^_])rst(?![^_])")
 
-WORD_TYPES_DISPATCH = {
+_WORD_TYPES_DISPATCH = {
     "quoted_literal": "String",
     "number": "Number",
     "deref": "VariableDereference",
@@ -113,7 +115,7 @@ def _word_type(token_type):
     """
 
     assert _RE_WORD_TYPE.match(token_type)
-    return WORD_TYPES_DISPATCH[token_type]
+    return _WORD_TYPES_DISPATCH[token_type]
 
 
 def _make_header_body_handler(end_body_regex,
@@ -160,15 +162,15 @@ def _make_header_body_handler(end_body_regex,
 
     return handler
 
-IF_BLOCK_IF_HANDLER = _make_header_body_handler(_RE_END_IF_BODY,
-                                                IfStatement,
-                                                has_footer=False)
-ELSEIF_BLOCK_HANDLER = _make_header_body_handler(_RE_END_IF_BODY,
-                                                 ElseIfStatement,
+_IF_BLOCK_IF_HANDLER = _make_header_body_handler(_RE_END_IF_BODY,
+                                                 IfStatement,
                                                  has_footer=False)
-ELSE_BLOCK_HANDLER = _make_header_body_handler(_RE_END_IF_BODY,
-                                               ElseStatement,
-                                               has_footer=False)
+_ELSEIF_BLOCK_HANDLER = _make_header_body_handler(_RE_END_IF_BODY,
+                                                  ElseIfStatement,
+                                                  has_footer=False)
+_ELSE_BLOCK_HANDLER = _make_header_body_handler(_RE_END_IF_BODY,
+                                                ElseStatement,
+                                                has_footer=False)
 
 
 def _handle_if_block(tokens, tokens_len, body_index, function_call):
@@ -180,10 +182,10 @@ def _handle_if_block(tokens, tokens_len, body_index, function_call):
     """
 
     # First handle the if statement and body
-    next_index, if_statement = IF_BLOCK_IF_HANDLER(tokens,
-                                                   tokens_len,
-                                                   body_index,
-                                                   function_call)
+    next_index, if_statement = _IF_BLOCK_IF_HANDLER(tokens,
+                                                    tokens_len,
+                                                    body_index,
+                                                    function_call)
     elseif_statements = []
     else_statement = None
     footer = None
@@ -207,16 +209,16 @@ def _handle_if_block(tokens, tokens_len, body_index, function_call):
                                                    next_index)
 
         if terminator == "elseif":
-            next_index, elseif_statement = ELSEIF_BLOCK_HANDLER(tokens,
-                                                                tokens_len,
-                                                                next_index + 1,
-                                                                header)
-            elseif_statements.append(elseif_statement)
+            next_index, elseif_stmnt = _ELSEIF_BLOCK_HANDLER(tokens,
+                                                             tokens_len,
+                                                             next_index + 1,
+                                                             header)
+            elseif_statements.append(elseif_stmnt)
         elif terminator == "else":
-            next_index, else_statement = ELSE_BLOCK_HANDLER(tokens,
-                                                            tokens_len,
-                                                            next_index + 1,
-                                                            header)
+            next_index, else_statement = _ELSE_BLOCK_HANDLER(tokens,
+                                                             tokens_len,
+                                                             next_index + 1,
+                                                             header)
 
     assert footer is not None
 
@@ -229,7 +231,7 @@ def _handle_if_block(tokens, tokens_len, body_index, function_call):
                                index=body_index)
 
 
-FUNCTION_CALL_DISAMBIGUATE = {
+_FUNCTION_CALL_DISAMBIGUATE = {
     "function": _make_header_body_handler(_RE_ENDFUNCTION, FunctionDefinition),
     "macro": _make_header_body_handler(_RE_ENDMACRO, MacroDefinition),
     "if": _handle_if_block,
@@ -266,7 +268,7 @@ def _handle_function_call(tokens, tokens_len, index):
 
     # Next find a handler for the body and pass control to that
     try:
-        handler = FUNCTION_CALL_DISAMBIGUATE[tokens[index].content]
+        handler = _FUNCTION_CALL_DISAMBIGUATE[tokens[index].content]
     except KeyError:
         handler = None
 
@@ -399,350 +401,359 @@ def _replace_token_range(tokens, start, end, replacement):
     return tokens
 
 
-def _prepare_comment_reassembly(tokens):
-    """Suppress begin_(single|double)_quoted_literal where after comment"""
-    current_line = 1
-    line_has_comment = False
-    for index in range(0, len(tokens)):
-        token = tokens[index]
-        if token.line > current_line:
-            current_line = token.line
-            line_has_comment = False
+def _is_really_comment(tokens, index):
+    """Returns true if the token at index is really a comment"""
+    if tokens[index].type == "comment":
+        return True
 
-        if token.type == "comment":
-            line_has_comment = True
+    # Really a comment in disguise!
+    try:
+        if tokens[index].content.lstrip()[0] == "#":
+            return True
+    except IndexError:
+        pass
 
-        if _RE_BEGIN_QUOTED.match(token.type) and line_has_comment:
-            tokens = _replace_token_range(tokens, index, index + 1,
-                                          [Token(type="unquoted_literal",
-                                                 content=token.content,
-                                                 line=token.line,
-                                                 col=token.col)])
-
-    return tokens
+    return False
 
 
-def _compress_multiline_strings(tokens):
-    """For a token list, concat multiline strings into a single string"""
-    collect_started = None
+class _CommentedLineRecorder(object):
+    """From the beginning of a comment to the end of the line"""
 
-    def _handle_quote_end(start_position, end_position, tokens):
-        """Handle the last quote in the string, paste together """
-        # Paste the tokens together and splice out
-        # the old tokens, inserting the new token
-        pasted_together_contents = ""
-        for i in range(start_position, end_position):
-            pasted_together_contents += tokens[i].content
+    def __init__(self, begin_index, line):
+        """Initialize"""
+        super(_CommentedLineRecorder, self).__init__()
+        self.begin_index = begin_index
+        self.line = line
 
-        tokens = _replace_token_range(tokens, start_position, end_position,
-                                      [Token(type="quoted_literal",
-                                             content=pasted_together_contents,
-                                             line=tokens[start_position].line,
-                                             col=tokens[start_position].col)])
+    @staticmethod
+    def maybe_start_recording(tokens, index):
+        """Returns a new CommentedLineRecorder when it is time to record"""
+        if _is_really_comment(tokens, index):
+            return _CommentedLineRecorder(index, tokens[index].line)
 
-        return (start_position, len(tokens), tokens, None)
+        return None
 
-    tokens_len = len(tokens)
-    token_index = 0
-    while token_index < tokens_len:
-        token = tokens[token_index]
-        if (_RE_END_QUOTED.match(token.type) and
-                collect_started is None):
-            # In this case, "tokenize" the matched token into what it would
-            # have looked like had the last quote not been there. Put the
-            # last quote on the end of the final token and call it an
-            # unquoted_literal
-            line_tokens = _scan_for_tokens(token.content[:-1])
-            replacement = []
-            for line_token in line_tokens[:-1]:
-                replacement.append(Token(type=line_token.type,
-                                         content=line_token.content,
-                                         line=line_token.line + token.line - 1,
-                                         col=line_token.col + token.col - 1))
-
-            last = line_tokens[-1]
-
-            # Handle comments here as we won't be able to detect them
-            # later when putting comments back together
-            last_line_token_type = "unquoted_literal"
-            if last.type == "comment":
-                last_line_token_type = "comment"
-
-            replacement.append(Token(type=last_line_token_type,
-                                     content=last.content + token.content[-1],
-                                     line=token.line - 1 + last.line,
-                                     col=token.col - 1 + last.col))
-
-            tokens = _replace_token_range(tokens,
-                                          token_index,
-                                          token_index + 1,
-                                          replacement)
-
-        elif _RE_BEGIN_QUOTED.match(token.type):
-            if collect_started is None:
-                token_type = token.type
-                single_or_double = token_type.split("_")[1]
-                collect_started = (token_index, single_or_double)
-            else:
-                # This is an edge case where a quote begins a line and matched
-                # as a quoted region beginning and a quoted region ending.
-                # Split the token before and after the quote, mark the
-                # quote character itself as an ending and insert both
-                # tokens back in, handling the ending afterwards.
-                assert _RE_QUOTE_TYPE.match(token.content[0])
-
-                # Mini-tokenize everything after the first token
-                line_tokens = _scan_for_tokens(token.content[1:])
-                end_type = "end_{0}_quoted_literal".format(collect_started[1])
-                replacement = [Token(type=end_type,
-                                     content=token.content[0],
-                                     line=token.line,
-                                     col=token.col)]
-
-                for after in line_tokens:
-                    replacement.append(Token(type=after.type,
-                                             content=after.content,
-                                             line=token.line + after.line - 1,
-                                             col=token.col + after.col - 1))
-
-                tokens = _replace_token_range(tokens,
-                                              token_index,
-                                              token_index + 1,
-                                              replacement)
-
-                (token_index,
-                 tokens_len,
-                 tokens,
-                 collect_started) = _handle_quote_end(collect_started[0],
-                                                      token_index + 1,
-                                                      tokens)
-
-        elif (collect_started is not None and
-              token.type ==
-              "end_{0}_quoted_literal".format(collect_started[1])):
-            (token_index,
-             tokens_len,
-             tokens,
-             collect_started) = _handle_quote_end(collect_started[0],
-                                                  token_index + 1,
-                                                  tokens)
-
-        token_index += 1
-
-    return tokens
+    def consume_token(self, tokens, index, tokens_len):
+        """Consumes a token.
 
 
-def _merge_tokens_helper(tokens,
-                         merge_function,
-                         merge_condition,
-                         record_condition):
-    """Base function for all token merging
+        Returns a tuple of (tokens, tokens_len, index) when consumption is
+        completed and tokens have been merged together"""
 
+        finished = False
 
-    merge_function does the grunt work of pasting together tokens and
-    returning the new token stream.
-    merge_condition is an object with a reset method and check method, both
-    taking a list of tokens and a current index. The check method should
-    return true when collected tokens should be merged.
-    record_condition returns true when tokens should start to be collected.
-    """
+        if tokens[index].line > self.line:
+            finished = True
+            end_index = index
+        elif index == tokens_len - 1:
+            finished = True
+            end_index = index + 1
 
-    tokens_len = len(tokens)
-    index = 0
-    record_start = None
-    while index < tokens_len:
-
-        # Paste on satisfaction of merge_condition
-        if record_start is not None and merge_condition.check(tokens, index):
-            tokens = merge_function(record_start, tokens, index)
-            tokens_len = len(tokens)
-            index = record_start + 1
-            record_start = None
-
-        if record_start is None and index < tokens_len:
-            if record_condition(tokens, index):
-                record_start = index
-                merge_condition.reset(tokens, index)
-
-        index += 1
-
-    # Past when we each EOF but still have an active collection. In that case
-    # paste tokens anyways as the last line was
-    # a part of this collection
-    if record_start is not None:
-        tokens = merge_function(record_start, tokens, index)
-
-    return tokens
-
-
-def _reassemble_comments(tokens):
-    """Reassemble any comments broken up by _compress_multiline_strings"""
-
-    def _merge_comment(comment_info, tokens, end_index):
-        """Paste together collected comment tokens"""
-
-        # Only merge if there is something to merge
-        if end_index > comment_info:
-
+        if finished:
             pasted_together_contents = ""
-            for i in range(comment_info, end_index):
+            for i in range(self.begin_index, end_index):
                 pasted_together_contents += tokens[i].content
 
             replacement = [Token(type="comment",
                                  content=pasted_together_contents,
-                                 line=tokens[comment_info].line,
-                                 col=tokens[comment_info].col)]
+                                 line=tokens[self.begin_index].line,
+                                 col=tokens[self.begin_index].col)]
 
             tokens = _replace_token_range(tokens,
-                                          comment_info,
+                                          self.begin_index,
                                           end_index,
                                           replacement)
 
-        return tokens
+            return (self.begin_index, len(tokens), tokens)
 
-    class IsNewLineCondition(object):
-        """A condition whose check function returns true when on a new line"""
+
+def _paste_tokens_line_by_line(tokens, token_type, begin_index, end_index):
+    """Returns lines of tokens pasted together, line by line"""
+    block_index = begin_index
+
+    while block_index < end_index:
+        rst_line = tokens[block_index].line
+        line_traversal_index = block_index
+        pasted = ""
+        try:
+            while tokens[line_traversal_index].line == rst_line:
+                pasted += tokens[line_traversal_index].content
+                line_traversal_index += 1
+        except IndexError:
+            assert line_traversal_index == end_index
+
+        last_tokens_len = len(tokens)
+        tokens = _replace_token_range(tokens,
+                                      block_index,
+                                      line_traversal_index,
+                                      [Token(type=token_type,
+                                             content=pasted,
+                                             line=tokens[block_index].line,
+                                             col=tokens[block_index].col)])
+        end_index -= last_tokens_len - len(tokens)
+        block_index += 1
+
+    return (block_index, len(tokens), tokens)
+
+
+class _RSTCommentBlockRecorder(object):
+    """From beginning of RST comment block to end of block"""
+
+    def __init__(self, begin_index, begin_line):
+        """Initialize"""
+        super(_RSTCommentBlockRecorder, self).__init__()
+        self.begin_index = begin_index
+        self.last_line_with_comment = begin_line
+
+    @staticmethod
+    def maybe_start_recording(tokens, index):
+        """Returns a new RSTCommentBlockRecorder when its time to record"""
+        if tokens[index].type == "begin_rst_comment":
+            return _RSTCommentBlockRecorder(index, tokens[index].line)
+
+        return None
+
+    def consume_token(self, tokens, index, tokens_len):
+        """Consumes a token.
+
+
+        Returns a tuple of (tokens, tokens_len, index) when consumption is
+        completed and tokens have been merged together"""
+
+        if _is_really_comment(tokens, index):
+            self.last_line_with_comment = tokens[index].line
+
+        finished = False
+
+        if (not _RE_IN_COMMENT_TYPE.match(tokens[index].type) and
+                self.last_line_with_comment != tokens[index].line):
+            finished = True
+            end_index = index
+        elif index == (tokens_len - 1):
+            finished = True
+            end_index = index + 1
+
+        if finished:
+            return _paste_tokens_line_by_line(tokens,
+                                              "rst",
+                                              self.begin_index,
+                                              end_index)
+
+
+class _InlineRSTRecorder(object):
+    """From beginning of inline RST to end of inline RST"""
+
+    def __init__(self, begin_index):
+        """Initialize"""
+        super(_InlineRSTRecorder, self).__init__()
+        self.begin_index = begin_index
+
+    @staticmethod
+    def maybe_start_recording(tokens, index):
+        """Returns a new InlineRSTRecorder when its time to record"""
+        if tokens[index].type == "begin_inline_rst":
+            return _InlineRSTRecorder(index)
+
+    def consume_token(self, tokens, index, tokens_len):
+        """Consumes a token.
+
+
+        Returns a tuple of (tokens, tokens_len, index) when consumption is
+        completed and tokens have been merged together"""
+        del tokens_len
+
+        if tokens[index].type == "end_inline_rst":
+            return _paste_tokens_line_by_line(tokens,
+                                              "rst",
+                                              self.begin_index,
+                                              index + 1)
+
+
+class _MultilineStringRecorder(object):
+    """From the beginning of a begin_quoted_literal to end_quoted_literal"""
+
+    def __init__(self, begin_index, quote_type):
+        """Initialize"""
+        super(_MultilineStringRecorder, self).__init__()
+        self.begin_index = begin_index
+        self.quote_type = quote_type
+
+    @staticmethod
+    def maybe_start_recording(tokens, index):
+        """Returns a new MultilineStringRecorder when its time to record"""
+        if _RE_BEGIN_QUOTED.match(tokens[index].type):
+            return _MultilineStringRecorder(index,
+                                            tokens[index].type.split("_")[1])
+
+        return None
+
+    def consume_token(self, tokens, index, tokens_len):
+        """Consumes a token.
+
+
+        Returns tuple of (tokens, tokens_len, index) when consumption is
+        completed and tokens have been merged together"""
+        del tokens_len
+
+        consumption_ended = False
+
+        begin_literal_type = "begin_{0}_quoted_literal".format(self.quote_type)
+        end_literal_type = "end_{0}_quoted_literal".format(self.quote_type)
+        if (index != self.begin_index and
+                tokens[index].type == begin_literal_type):
+            # This is an edge case where a quote begins a line and matched
+            # as a quoted region beginning and a quoted region ending.
+            # Split the token before and after the quote, mark the
+            # quote character itself as an ending and insert both
+            # tokens back in, handling the ending afterwards.
+            assert _RE_QUOTE_TYPE.match(tokens[index].content[0])
+
+            # Mini-tokenize everything after the first token
+            line_tokens = _scan_for_tokens(tokens[index].content[1:])
+            end_type = "end_{0}_quoted_literal".format(self.quote_type)
+            replacement = [Token(type=end_type,
+                                 content=tokens[index].content[0],
+                                 line=tokens[index].line,
+                                 col=tokens[index].col)]
+
+            for after in line_tokens:
+                replacement.append(Token(type=after.type,
+                                         content=after.content,
+                                         line=(tokens[index].line +
+                                               after.line - 1),
+                                         col=(tokens[index].col +
+                                              after.col - 1)))
+
+            tokens = _replace_token_range(tokens,
+                                          index,
+                                          index + 1,
+                                          replacement)
+            consumption_ended = True
+
+        if tokens[index].type == end_literal_type:
+            consumption_ended = True
+
+        if consumption_ended:
+            start = self.begin_index
+            end = index + 1
+            pasted = ""
+            for i in range(start, end):
+                pasted += tokens[i].content
+
+            tokens = _replace_token_range(tokens, start, end,
+                                          [Token(type="quoted_literal",
+                                                 content=pasted,
+                                                 line=tokens[start].line,
+                                                 col=tokens[start].col)])
+
+            return (start, len(tokens), tokens)
+
+_RECORDERS = [
+    _InlineRSTRecorder,
+    _RSTCommentBlockRecorder,
+    _CommentedLineRecorder,
+    _MultilineStringRecorder
+]
+
+
+def _compress_tokens(tokens):
+    """Pastes multi-line strings, comments, RST etc together.
+
+
+    This function works by iterating over each over the _RECORDERS to determine
+    if we should start recording a token sequence for pasting together. If
+    it finds one, then we keep recording until that recorder is done and
+    returns a pasted together token sequence. Keep going until we reach
+    the end of the sequence.
+
+    The sequence is modified in place, so any function that modifies it
+    must return its new length. This is also why we use a while loop here.
+    """
+    recorder = None
+
+    def _edge_case_stray_end_quoted(tokens, index):
+        """Convert stray end_quoted_literals to unquoted_literals"""
+        # In this case, "tokenize" the matched token into what it would
+        # have looked like had the last quote not been there. Put the
+        # last quote on the end of the final token and call it an
+        # unquoted_literal
+        tokens[index] = Token(type="unquoted_literal",
+                              content=tokens[index].content,
+                              line=tokens[index].line,
+                              col=tokens[index].col)
+
+    class EdgeCaseStrayComments(object):
+        """Stateful function detecting stray comments"""
 
         def __init__(self):
             super(self.__class__, self).__init__()
-            self.current_line = None
+            self.paren_count = 0
 
-        def reset(self, tokens, index):
-            """Reset current line to current token index line"""
-            self.current_line = tokens[index].line
+        def __call__(self, tokens, index):
+            """Track parens"""
+            token_type = tokens[index].type
 
-        def check(self, tokens, index):
-            """Returns true if the token index line is greater than stored"""
-            if tokens[index].line > self.current_line:
-                self.current_line = tokens[index].line
-                return True
+            if token_type == "left paren":
+                self.paren_count += 1
 
-            return False
+            if self.paren_count > 1:
+                tokens[index] = Token(type="unquoted_literal",
+                                      content=tokens[index].content,
+                                      line=tokens[index].line,
+                                      col=tokens[index].col)
 
-    return _merge_tokens_helper(tokens, _merge_comment, IsNewLineCondition(),
-                                lambda t, i: t[i].type == "comment")
+            if token_type == "right paren":
+                self.paren_count -= 1
 
+        def __enter__(self):
+            """Nothing"""
+            return self
 
-def _stateless_cond(function):
-    """Create a stateless condition from function for _merge_tokens_helper"""
-    class StatelessCondition(object):
-        """A stateless condition that checks delegates to function"""
+        def __exit__(self, *args):
+            """Assertion"""
+            assert self.paren_count == 0
 
-        def reset(self, tokens, index):
-            """No state, does nothing"""
-            pass
+    tokens_len = len(tokens)
+    index = 0
 
-        def check(self, tokens, index):  # pylint:disable=no-self-use
-            """Delegate to function"""
-            return function(tokens, index)
+    with EdgeCaseStrayComments() as edge_case_stray_parens:
+        edge_cases = [
+            (_RE_PAREN_TYPE, edge_case_stray_parens),
+            (_RE_END_QUOTED, _edge_case_stray_end_quoted),
+        ]
 
-    return StatelessCondition()
+        while index < tokens_len:
 
+            if recorder is None:
+                # See if we can start recording something
+                for recorder_factory in _RECORDERS:
+                    recorder = recorder_factory.maybe_start_recording(tokens,
+                                                                      index)
+                    if recorder is not None:
+                        break
 
-def _multiline_comment_merge(comment_info, tokens, end_index):
-    """Paste together collected comment tokens"""
-    def _append_to_replacement(replacement, contents, line, col):
-        """Convenience function to append to replacement"""
-        replacement.append(Token(type="rst",
-                                 content=contents,
-                                 line=line,
-                                 col=col))
+            if recorder is not None:
+                # Do recording
+                result = recorder.consume_token(tokens, index, tokens_len)
+                if result is not None:
+                    (index, tokens_len, tokens) = result
+                    recorder = None
 
-    pasted_together_contents = ""
-    current_line = tokens[comment_info].line
-    current_col = tokens[comment_info].col
+            else:
+                # Handle edge cases
+                for regex, handler in edge_cases:
+                    if regex.match(tokens[index].type):
+                        handler(tokens, index)
 
-    replacement = []
+            index += 1
 
-    for i in range(comment_info, end_index):
-        if tokens[i].line > current_line:
-            _append_to_replacement(replacement,
-                                   pasted_together_contents,
-                                   current_line,
-                                   current_col)
-            pasted_together_contents = ""
-            current_line = tokens[i].line
-            current_col = tokens[i].col
-
-        pasted_together_contents += tokens[i].content
-
-    # Append final line to replacement
-    _append_to_replacement(replacement,
-                           pasted_together_contents,
-                           current_line,
-                           current_col)
-
-    tokens = _replace_token_range(tokens,
-                                  comment_info,
-                                  end_index,
-                                  replacement)
-    return tokens
-
-
-def _merge_rst_comments(tokens):
-    """Convert comments following #.rst to rst"""
-
-    regex = _RE_IN_COMMENT_TYPE
-    condition = _stateless_cond(lambda t, i: regex.match(t[i].type) is None)
-    return _merge_tokens_helper(tokens, _multiline_comment_merge, condition,
-                                lambda t, i: t[i].type == "begin_rst_comment")
-
-
-def _merge_inline_rst(tokens):
-    """Convert inline rst to rst"""
-
-    cond = _stateless_cond(lambda t, i: t[i - 1].type == "end_inline_rst")
-    return _merge_tokens_helper(tokens, _multiline_comment_merge, cond,
-                                lambda t, i: t[i].type == "begin_inline_rst")
-
-
-def _suppress_extraneous_parens(tokens):
-    """Convert extraneous parens to unquoted_literal
-
-
-    These are parens passed as actual function arguments, which is actually
-    valid CMake.
-    """
-    paren_count = 0
-
-    for token_index in range(0, len(tokens)):
-        # Must be preserved up here
-        token_type = tokens[token_index].type
-
-        if token_type == "left paren":
-            paren_count += 1
-
-        if (paren_count > 1 and
-                _RE_PAREN_TYPE.match(tokens[token_index].content)):
-            replacement = [Token(type="unquoted_literal",
-                                 content=tokens[token_index].content,
-                                 line=tokens[token_index].line,
-                                 col=tokens[token_index].col)]
-
-            tokens = _replace_token_range(tokens,
-                                          token_index,
-                                          token_index + 1,
-                                          replacement)
-
-        if token_type == "right paren":
-            paren_count -= 1
-
-        assert paren_count >= 0
-
-    # The one limitation is that parens must be balanced
-    assert paren_count == 0
     return tokens
 
 
 def tokenize(contents):
     """Parse a string called contents for CMake tokens"""
     tokens = _scan_for_tokens(contents)
-    tokens = _prepare_comment_reassembly(tokens)
-    tokens = _compress_multiline_strings(tokens)
-    tokens = _reassemble_comments(tokens)
-    tokens = _merge_inline_rst(tokens)
-    tokens = _merge_rst_comments(tokens)
-    tokens = _suppress_extraneous_parens(tokens)
+    tokens = _compress_tokens(tokens)
     tokens = [token for token in tokens if token.type != "whitespace"]
     return tokens
 
