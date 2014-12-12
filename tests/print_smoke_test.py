@@ -9,11 +9,14 @@
 from nose_parameterized import parameterized
 import cmakeast
 import os
-import shutil
-import shutilwhich  # NOQA # pylint:disable=unused-import
 import subprocess
 import sys
 import unittest
+
+if sys.version_info.major >= 3:
+    import shutil
+else:
+    import shutilwhich as shutil
 
 
 # First find cmake and then find the module path

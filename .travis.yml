@@ -15,12 +15,18 @@ install:
   fi
 - pip install -r requirements.txt
 - pip install polysquare-generic-file-linter python-coveralls flake8 pep8-naming pylint coverage
+- if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then
+    pip install http://sourceforge.net/projects/pychecker/files/pychecker/0.8.19/pychecker-0.8.19.tar.gz/download;
+  fi
 - gem install mdl
 script:
 - python setup.py build
 - coverage run --source=cmakeast setup.py test
 - python setup.py install
 - pylint -f colorized tests/ cmakeast/ --disable=r0903,R0904
+- if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then
+    pychecker tests/*.py cmakeast/*.py;
+  fi
 - flake8 tests/ cmakeast/
 - mdl .
 - find cmakeast tests -type f -name "*.py" | xargs -L 1 polysquare-generic-file-linter
