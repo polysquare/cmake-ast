@@ -74,6 +74,8 @@ toplevel node, with node descriptions as follows:
 Each node also has a `line` and `col` member to indicate where it can be
 found in the source file.
 
+Word type aliases are stored in `WordType` inside `ast`.
+
 Traversing the AST
 ------------------
 
@@ -108,4 +110,19 @@ Tokenization
 ------------
 
 To get an even lower level representation, use `cmakeast.ast.tokenize(contents)`
-which divides the file only into tokens.
+which divides the file only into tokens. Tokens correspond as follows
+
+--------------------------------------------------------------------
+| Token Type        | Description                                  |
+|:-----------------:|:--------------------------------------------:|
+| `QuotedLiteral`   | Something in quotes                          |
+| `LeftParen`       | `(`                                          |
+| `RightParen`      | `)`                                          |
+| `Word`            | Alphanumeric Sequence                        |
+| `Number`          | Numeric-Only Sequence                        |
+| `Deref`           | Alphanumeric Sequence inside `${}`           |
+| `RST`             | Documentation Comment                        |
+| `Comment`         | Comment                                      |
+| `UnquotedLiteral` | Any character sequence, punctuation included |
+
+Token type aliases are stored in the `TokenType` class in `ast`.

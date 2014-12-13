@@ -58,7 +58,6 @@ ToplevelBody
 from collections import namedtuple
 import re
 
-Word = namedtuple("Word", "type contents line col index")
 FunctionCall = namedtuple("FunctionCall", "name arguments line col index")
 FunctionDefinition = namedtuple("FunctionDefinition",
                                 "header body line col index footer")
@@ -78,28 +77,158 @@ ToplevelBody = namedtuple("ToplevelBody", "statements")
 
 GenericBody = namedtuple("GenericBody", "statements arguments")
 
-_RE_VARIABLE_DEREF = re.compile(r"\$\{[A-za-z0-9_]+\}")
-_RE_WORD_TYPE = re.compile(r"(word|quoted_literal|unquoted_literal|"
-                           "number|deref)")
 _RE_END_IF_BODY = re.compile(r"(endif|else|elseif)")
 _RE_ENDFUNCTION = re.compile(r"endfunction")
 _RE_ENDMACRO = re.compile(r"endmacro")
 _RE_ENDFOREACH = re.compile(r"endforeach")
 _RE_ENDWHILE = re.compile(r"endwhile")
-_RE_BEGIN_QUOTED = re.compile(r"begin_(single|double)_quoted_literal")
-_RE_END_QUOTED = re.compile(r"end_(single|double)_quoted_literal")
 _RE_QUOTE_TYPE = re.compile(r"[\"\']")
-_RE_PAREN_TYPE = re.compile(r"left|right paren")
-_RE_IN_COMMENT_TYPE = re.compile(r"(comment|newline|whitespace|.*rst.*)")
-_RE_START_COMMENT = re.compile(r"(comment|(?<![^_])rst(?![^_]))")
-_RE_IS_RST = re.compile(r"(?<![^_])rst(?![^_])")
+
+
+def _lookup_enum_in_ns(namespace, value):
+    """Returns the attribute of namespace corresponding to value"""
+    for attribute in dir(namespace):
+        if getattr(namespace, attribute) == value:
+            return attribute
+
+
+# We have a class here instead of a contant so that we can override
+# __repr__ and print out a human-readable type name
+class Word(namedtuple("Word", "type contents line col index")):
+    """A word-type node"""
+
+    def __repr__(self):
+        """Print out a representation of this word node"""
+
+        type_string = _lookup_enum_in_ns(WordType, self.type)
+        assert type_string is not None
+        return ("Word(type={0}, "
+                "contents={1}, "
+                "line={2}, "
+                "col={3} "
+                "index={4} ").format(type_string,
+                                     self.contents,
+                                     self.line,
+                                     self.col,
+                                     self.index)
+
+
+# We have a class here instead of a contant so that we can override
+# __repr__ and print out a human-readable type name
+class Token(namedtuple("Token", "type content line col")):
+    """An immutable record representing a token"""
+
+    def __repr__(self):
+        """A string representation of this token"""
+
+        type_string = _lookup_enum_in_ns(TokenType, self.type)
+        assert type_string is not None
+        return ("Token(type={0}, "
+                "content={1}, "
+                "line={2}, "
+                "col={3})").format(type_string,
+                                   self.content,
+                                   self.line,
+                                   self.col)
+
+
+# As it turns out, just using constants as class variables
+# is a lot faster than using enums. This is proably because enums
+# do a lot of type checking to make sure that you don't compare
+# enums of different types. Since we could be analysing
+# quite a lot of code, performance is more important than safety here.
+class WordType(object):
+    """A class with instance variables for word types"""
+
+    String = 0
+    Number = 1
+    VariableDereference = 2
+    Variable = 3
+    CompoundLiteral = 4
+
+
+class TokenType(object):
+    """A class with instance variables for token types"""
+
+    QuotedLiteral = 0
+    LeftParen = 1
+    RightParen = 2
+    Word = 3
+    Number = 4
+    Deref = 5
+    Whitespace = 6
+    Newline = 7
+    BeginDoubleQuotedLiteral = 8
+    EndDoubleQuotedLiteral = 9
+    BeginSingleQuotedLiteral = 10
+    EndSingleQuotedLiteral = 11
+    BeginRSTComment = 12
+    BeginInlineRST = 13
+    RST = 14
+    EndInlineRST = 15
+    Comment = 16
+    UnquotedLiteral = 17
+
+
+# Utility functions to check if tokens are of certain types
+def _is_word_type(token_type):
+    """Returns true if this is a word-type token"""
+    return token_type in [TokenType.Word,
+                          TokenType.QuotedLiteral,
+                          TokenType.UnquotedLiteral,
+                          TokenType.Number,
+                          TokenType.Deref]
+
+
+def _is_in_comment_type(token_type):
+    """Returns true if this kind of token can be inside a comment"""
+    return token_type in [TokenType.Comment,
+                          TokenType.Newline,
+                          TokenType.Whitespace,
+                          TokenType.RST,
+                          TokenType.BeginRSTComment,
+                          TokenType.BeginInlineRST,
+                          TokenType.EndInlineRST]
+
+
+def _is_begin_quoted_type(token_type):
+    """Returns true if this is a token indicating the beginning of a string"""
+    return token_type in [TokenType.BeginSingleQuotedLiteral,
+                          TokenType.BeginDoubleQuotedLiteral]
+
+
+def _is_end_quoted_type(token_type):
+    """Returns true if this is a token indicating the end of a string"""
+    return token_type in [TokenType.EndSingleQuotedLiteral,
+                          TokenType.EndDoubleQuotedLiteral]
+
+
+def _is_paren_type(token_type):
+    """Returns true if this is a paren-type token"""
+    return token_type in [TokenType.LeftParen,
+                          TokenType.RightParen]
+
+
+def _get_string_type_from_token(token_type):
+    """Returns 'Single' or 'Double' depending on what kind of string this is"""
+    return_value = None
+    if token_type in [TokenType.BeginSingleQuotedLiteral,
+                      TokenType.EndSingleQuotedLiteral]:
+        return_value = "Single"
+    elif token_type in [TokenType.BeginDoubleQuotedLiteral,
+                        TokenType.EndDoubleQuotedLiteral]:
+        return_value = "Double"
+
+    assert return_value is not None
+    return return_value
+
 
 _WORD_TYPES_DISPATCH = {
-    "quoted_literal": "String",
-    "number": "Number",
-    "deref": "VariableDereference",
-    "word": "Variable",
-    "unquoted_literal": "CompoundLiteral"
+    TokenType.QuotedLiteral: WordType.String,
+    TokenType.Number: WordType.Number,
+    TokenType.Deref: WordType.VariableDereference,
+    TokenType.Word: WordType.Variable,
+    TokenType.UnquotedLiteral: WordType.CompoundLiteral
 }
 
 
@@ -114,7 +243,7 @@ def _word_type(token_type):
     Return CompoundLiteral otherwise
     """
 
-    assert _RE_WORD_TYPE.match(token_type)
+    assert _is_word_type(token_type)
     return _WORD_TYPES_DISPATCH[token_type]
 
 
@@ -133,7 +262,7 @@ def _make_header_body_handler(end_body_regex,
             """Header body termination function"""
             if end_body_regex.match(tokens[token_index].content):
                 try:
-                    if tokens[token_index + 1].type == "left paren":
+                    if tokens[token_index + 1].type == TokenType.LeftParen:
                         return True
                 except IndexError:
                     raise RuntimeError("Syntax Error")
@@ -253,7 +382,7 @@ def _handle_function_call(tokens, tokens_len, index):
 
     def _end_function_call(token_index, tokens):
         """Function call termination detector"""
-        return tokens[token_index].type == "right paren"
+        return tokens[token_index].type == TokenType.RightParen
 
     # First handle the "function call"
     next_index, call_body = _ast_worker(tokens, tokens_len,
@@ -297,15 +426,15 @@ def _ast_worker(tokens, tokens_len, index, term):
                 break
 
         # Function call
-        if tokens[index].type == "word" and \
+        if tokens[index].type == TokenType.Word and \
            index + 1 < tokens_len and \
-           tokens[index + 1].type == "left paren":
+           tokens[index + 1].type == TokenType.LeftParen:
             index, statement = _handle_function_call(tokens,
                                                      tokens_len,
                                                      index)
             statements.append(statement)
         # Argument
-        elif _RE_WORD_TYPE.match(tokens[index].type):
+        elif _is_word_type(tokens[index].type):
             arguments.append(Word(type=_word_type(tokens[index].type),
                                   contents=tokens[index].content,
                                   line=tokens[index].line,
@@ -317,8 +446,6 @@ def _ast_worker(tokens, tokens_len, index, term):
     return (index, GenericBody(statements=statements,
                                arguments=arguments))
 
-Token = namedtuple("Token", "type content line col")
-
 
 def _scan_for_tokens(contents):
     """Scan a string for tokens and return immediate form tokens"""
@@ -328,46 +455,47 @@ def _scan_for_tokens(contents):
     scanner = re.Scanner([
         # Things inside quotes
         (r"(?<![^\s\(])([\"\'])(?:(?=(\\?))\2.)*?\1(?![^\s\)])",
-         lambda s, t: ("quoted_literal", t)),
+         lambda s, t: (TokenType.QuotedLiteral, t)),
         # Numbers on their own
-        (r"(?<![^\s\(])-?[0-9]+(?![^\s\)\(])", lambda s, t: ("number", t)),
+        (r"(?<![^\s\(])-?[0-9]+(?![^\s\)\(])", lambda s, t: (TokenType.Number,
+                                                             t)),
         # Left Paren
-        (r"\(", lambda s, t: ("left paren", t)),
+        (r"\(", lambda s, t: (TokenType.LeftParen, t)),
         # Right Paren
-        (r"\)", lambda s, t: ("right paren", t)),
+        (r"\)", lambda s, t: (TokenType.RightParen, t)),
         # Either a valid function name or variable name.
         (r"(?<![^\s\(])[a-zA-z_][a-zA-Z0-9_]*(?![^\s\)\(])",
-         lambda s, t: ("word", t)),
+         lambda s, t: (TokenType.Word, t)),
         # Variable dereference.
         (r"(?<![^\s\(])\${[a-zA-z_][a-zA-Z0-9_]*}(?![^\s\)])",
-         lambda s, t: ("deref", t)),
+         lambda s, t: (TokenType.Deref, t)),
         # Newline
-        (r"\n", lambda s, t: ("newline", t)),
+        (r"\n", lambda s, t: (TokenType.Newline, t)),
         # Whitespace
-        (r"\s+", lambda s, t: ("whitespace", t)),
+        (r"\s+", lambda s, t: (TokenType.Whitespace, t)),
         # The beginning of a double-quoted string, terminating at end of line
         (r"(?<![^\s\(\\])[\"]([^\"]|\\[\"])*$",
-         lambda s, t: ("begin_double_quoted_literal", t)),
+         lambda s, t: (TokenType.BeginDoubleQuotedLiteral, t)),
         # The end of a double-quoted string
         (r"[^\s]*(?<!\\)[\"](?![^\s\)])",
-         lambda s, t: ("end_double_quoted_literal", t)),
+         lambda s, t: (TokenType.EndDoubleQuotedLiteral, t)),
         # The beginning of a single-quoted string, terminating at end of line
         (r"(?<![^\s\(\\])[\']([^\']|\\[\'])*$",
-         lambda s, t: ("begin_single_quoted_literal", t)),
+         lambda s, t: (TokenType.BeginSingleQuotedLiteral, t)),
         # The end of a single-quoted string
         (r"[^\s]*(?<!\\)[\'](?![^\s\)])",
-         lambda s, t: ("end_single_quoted_literal", t)),
+         lambda s, t: (TokenType.EndSingleQuotedLiteral, t)),
         # Begin-RST Comment Block
-        (r"#.rst:$", lambda s, t: ("begin_rst_comment", t)),
+        (r"#.rst:$", lambda s, t: (TokenType.BeginRSTComment, t)),
         # Begin Inline RST
-        (r"#\[=*\[.rst:$", lambda s, t: ("begin_inline_rst", t)),
+        (r"#\[=*\[.rst:$", lambda s, t: (TokenType.BeginInlineRST, t)),
         # End Inline RST
-        (r"#\]=*\]$", lambda s, t: ("end_inline_rst", t)),
+        (r"#\]=*\]$", lambda s, t: (TokenType.EndInlineRST, t)),
         # Comment
-        (r"#", lambda s, t: ("comment", t)),
+        (r"#", lambda s, t: (TokenType.Comment, t)),
         # Catch-all for literals which are compound statements.
         (r"([^\s\(\)]+|[^\s\(]*[^\)]|[^\(][^\s\)]*)",
-         lambda s, t: ("unquoted_literal", t))
+         lambda s, t: (TokenType.UnquotedLiteral, t))
     ])
 
     tokens_return = []
@@ -403,7 +531,7 @@ def _replace_token_range(tokens, start, end, replacement):
 
 def _is_really_comment(tokens, index):
     """Returns true if the token at index is really a comment"""
-    if tokens[index].type == "comment":
+    if tokens[index].type == TokenType.Comment:
         return True
 
     # Really a comment in disguise!
@@ -419,10 +547,10 @@ def _is_really_comment(tokens, index):
 class _CommentedLineRecorder(object):
     """From the beginning of a comment to the end of the line"""
 
-    def __init__(self, begin_index, line):
+    def __init__(self, begin, line):
         """Initialize"""
         super(_CommentedLineRecorder, self).__init__()
-        self.begin_index = begin_index
+        self.begin = begin
         self.line = line
 
     @staticmethod
@@ -444,34 +572,34 @@ class _CommentedLineRecorder(object):
 
         if tokens[index].line > self.line:
             finished = True
-            end_index = index
+            end = index
         elif index == tokens_len - 1:
             finished = True
-            end_index = index + 1
+            end = index + 1
 
         if finished:
             pasted_together_contents = ""
-            for i in range(self.begin_index, end_index):
+            for i in range(self.begin, end):
                 pasted_together_contents += tokens[i].content
 
-            replacement = [Token(type="comment",
+            replacement = [Token(type=TokenType.Comment,
                                  content=pasted_together_contents,
-                                 line=tokens[self.begin_index].line,
-                                 col=tokens[self.begin_index].col)]
+                                 line=tokens[self.begin].line,
+                                 col=tokens[self.begin].col)]
 
             tokens = _replace_token_range(tokens,
-                                          self.begin_index,
-                                          end_index,
+                                          self.begin,
+                                          end,
                                           replacement)
 
-            return (self.begin_index, len(tokens), tokens)
+            return (self.begin, len(tokens), tokens)
 
 
-def _paste_tokens_line_by_line(tokens, token_type, begin_index, end_index):
+def _paste_tokens_line_by_line(tokens, token_type, begin, end):
     """Returns lines of tokens pasted together, line by line"""
-    block_index = begin_index
+    block_index = begin
 
-    while block_index < end_index:
+    while block_index < end:
         rst_line = tokens[block_index].line
         line_traversal_index = block_index
         pasted = ""
@@ -480,7 +608,7 @@ def _paste_tokens_line_by_line(tokens, token_type, begin_index, end_index):
                 pasted += tokens[line_traversal_index].content
                 line_traversal_index += 1
         except IndexError:
-            assert line_traversal_index == end_index
+            assert line_traversal_index == end
 
         last_tokens_len = len(tokens)
         tokens = _replace_token_range(tokens,
@@ -490,7 +618,7 @@ def _paste_tokens_line_by_line(tokens, token_type, begin_index, end_index):
                                              content=pasted,
                                              line=tokens[block_index].line,
                                              col=tokens[block_index].col)])
-        end_index -= last_tokens_len - len(tokens)
+        end -= last_tokens_len - len(tokens)
         block_index += 1
 
     return (block_index, len(tokens), tokens)
@@ -499,16 +627,16 @@ def _paste_tokens_line_by_line(tokens, token_type, begin_index, end_index):
 class _RSTCommentBlockRecorder(object):
     """From beginning of RST comment block to end of block"""
 
-    def __init__(self, begin_index, begin_line):
+    def __init__(self, begin, begin_line):
         """Initialize"""
         super(_RSTCommentBlockRecorder, self).__init__()
-        self.begin_index = begin_index
+        self.begin = begin
         self.last_line_with_comment = begin_line
 
     @staticmethod
     def maybe_start_recording(tokens, index):
         """Returns a new RSTCommentBlockRecorder when its time to record"""
-        if tokens[index].type == "begin_rst_comment":
+        if tokens[index].type == TokenType.BeginRSTComment:
             return _RSTCommentBlockRecorder(index, tokens[index].line)
 
         return None
@@ -525,33 +653,33 @@ class _RSTCommentBlockRecorder(object):
 
         finished = False
 
-        if (not _RE_IN_COMMENT_TYPE.match(tokens[index].type) and
+        if (not _is_in_comment_type(tokens[index].type) and
                 self.last_line_with_comment != tokens[index].line):
             finished = True
-            end_index = index
+            end = index
         elif index == (tokens_len - 1):
             finished = True
-            end_index = index + 1
+            end = index + 1
 
         if finished:
             return _paste_tokens_line_by_line(tokens,
-                                              "rst",
-                                              self.begin_index,
-                                              end_index)
+                                              TokenType.RST,
+                                              self.begin,
+                                              end)
 
 
 class _InlineRSTRecorder(object):
     """From beginning of inline RST to end of inline RST"""
 
-    def __init__(self, begin_index):
+    def __init__(self, begin):
         """Initialize"""
         super(_InlineRSTRecorder, self).__init__()
-        self.begin_index = begin_index
+        self.begin = begin
 
     @staticmethod
     def maybe_start_recording(tokens, index):
         """Returns a new InlineRSTRecorder when its time to record"""
-        if tokens[index].type == "begin_inline_rst":
+        if tokens[index].type == TokenType.BeginInlineRST:
             return _InlineRSTRecorder(index)
 
     def consume_token(self, tokens, index, tokens_len):
@@ -562,28 +690,28 @@ class _InlineRSTRecorder(object):
         completed and tokens have been merged together"""
         del tokens_len
 
-        if tokens[index].type == "end_inline_rst":
+        if tokens[index].type == TokenType.EndInlineRST:
             return _paste_tokens_line_by_line(tokens,
-                                              "rst",
-                                              self.begin_index,
+                                              TokenType.RST,
+                                              self.begin,
                                               index + 1)
 
 
 class _MultilineStringRecorder(object):
     """From the beginning of a begin_quoted_literal to end_quoted_literal"""
 
-    def __init__(self, begin_index, quote_type):
+    def __init__(self, begin, quote_type):
         """Initialize"""
         super(_MultilineStringRecorder, self).__init__()
-        self.begin_index = begin_index
+        self.begin = begin
         self.quote_type = quote_type
 
     @staticmethod
     def maybe_start_recording(tokens, index):
         """Returns a new MultilineStringRecorder when its time to record"""
-        if _RE_BEGIN_QUOTED.match(tokens[index].type):
-            return _MultilineStringRecorder(index,
-                                            tokens[index].type.split("_")[1])
+        if _is_begin_quoted_type(tokens[index].type):
+            string_type = _get_string_type_from_token(tokens[index].type)
+            return _MultilineStringRecorder(index, string_type)
 
         return None
 
@@ -597,9 +725,14 @@ class _MultilineStringRecorder(object):
 
         consumption_ended = False
 
-        begin_literal_type = "begin_{0}_quoted_literal".format(self.quote_type)
-        end_literal_type = "end_{0}_quoted_literal".format(self.quote_type)
-        if (index != self.begin_index and
+        q_type = self.quote_type
+
+        begin_literal_type = getattr(TokenType,
+                                     "Begin{0}QuotedLiteral".format(q_type))
+        end_literal_type = getattr(TokenType,
+                                   "End{0}QuotedLiteral".format(q_type))
+
+        if (index != self.begin and
                 tokens[index].type == begin_literal_type):
             # This is an edge case where a quote begins a line and matched
             # as a quoted region beginning and a quoted region ending.
@@ -610,7 +743,8 @@ class _MultilineStringRecorder(object):
 
             # Mini-tokenize everything after the first token
             line_tokens = _scan_for_tokens(tokens[index].content[1:])
-            end_type = "end_{0}_quoted_literal".format(self.quote_type)
+            end_type = getattr(TokenType,
+                               "End{0}QuotedLiteral".format(q_type))
             replacement = [Token(type=end_type,
                                  content=tokens[index].content[0],
                                  line=tokens[index].line,
@@ -634,19 +768,18 @@ class _MultilineStringRecorder(object):
             consumption_ended = True
 
         if consumption_ended:
-            start = self.begin_index
             end = index + 1
             pasted = ""
-            for i in range(start, end):
+            for i in range(self.begin, end):
                 pasted += tokens[i].content
 
-            tokens = _replace_token_range(tokens, start, end,
-                                          [Token(type="quoted_literal",
+            tokens = _replace_token_range(tokens, self.begin, end,
+                                          [Token(type=TokenType.QuotedLiteral,
                                                  content=pasted,
-                                                 line=tokens[start].line,
-                                                 col=tokens[start].col)])
+                                                 line=tokens[self.begin].line,
+                                                 col=tokens[self.begin].col)])
 
-            return (start, len(tokens), tokens)
+            return (self.begin, len(tokens), tokens)
 
 _RECORDERS = [
     _InlineRSTRecorder,
@@ -677,12 +810,12 @@ def _compress_tokens(tokens):
         # have looked like had the last quote not been there. Put the
         # last quote on the end of the final token and call it an
         # unquoted_literal
-        tokens[index] = Token(type="unquoted_literal",
+        tokens[index] = Token(type=TokenType.UnquotedLiteral,
                               content=tokens[index].content,
                               line=tokens[index].line,
                               col=tokens[index].col)
 
-    class EdgeCaseStrayComments(object):
+    class EdgeCaseStrayParens(object):
         """Stateful function detecting stray comments"""
 
         def __init__(self):
@@ -693,16 +826,16 @@ def _compress_tokens(tokens):
             """Track parens"""
             token_type = tokens[index].type
 
-            if token_type == "left paren":
+            if token_type == TokenType.LeftParen:
                 self.paren_count += 1
 
             if self.paren_count > 1:
-                tokens[index] = Token(type="unquoted_literal",
+                tokens[index] = Token(type=TokenType.UnquotedLiteral,
                                       content=tokens[index].content,
                                       line=tokens[index].line,
                                       col=tokens[index].col)
 
-            if token_type == "right paren":
+            if token_type == TokenType.RightParen:
                 self.paren_count -= 1
 
         def __enter__(self):
@@ -716,10 +849,10 @@ def _compress_tokens(tokens):
     tokens_len = len(tokens)
     index = 0
 
-    with EdgeCaseStrayComments() as edge_case_stray_parens:
+    with EdgeCaseStrayParens() as edge_case_stray_parens:
         edge_cases = [
-            (_RE_PAREN_TYPE, edge_case_stray_parens),
-            (_RE_END_QUOTED, _edge_case_stray_end_quoted),
+            (_is_paren_type, edge_case_stray_parens),
+            (_is_end_quoted_type, _edge_case_stray_end_quoted),
         ]
 
         while index < tokens_len:
@@ -741,8 +874,8 @@ def _compress_tokens(tokens):
 
             else:
                 # Handle edge cases
-                for regex, handler in edge_cases:
-                    if regex.match(tokens[index].type):
+                for matcher, handler in edge_cases:
+                    if matcher(tokens[index].type):
                         handler(tokens, index)
 
             index += 1
@@ -754,7 +887,7 @@ def tokenize(contents):
     """Parse a string called contents for CMake tokens"""
     tokens = _scan_for_tokens(contents)
     tokens = _compress_tokens(tokens)
-    tokens = [token for token in tokens if token.type != "whitespace"]
+    tokens = [token for token in tokens if token.type != TokenType.Whitespace]
     return tokens
 
 
