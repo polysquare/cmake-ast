@@ -1,6 +1,0 @@
-setuptools
-testtools
-shutilwhich
-nose
-nose-parameterized
-mock
