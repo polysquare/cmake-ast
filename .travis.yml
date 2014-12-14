@@ -29,7 +29,7 @@ script:
   fi
 - flake8 tests/ cmakeast/ setup.py
 - mdl .
-- find cmakeast tests . -type f -name "*.py" | xargs -L 1 polysquare-generic-file-linter
+- find cmakeast tests setup.py -type f -name "*.py" | xargs -L 1 polysquare-generic-file-linter
 after_success:
 - coverage report -m
 - coveralls
