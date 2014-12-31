@@ -3,15 +3,18 @@
 # Dumps an AST for a specified FILE on the commandline
 #
 # See LICENCE.md for Copyright information
-"""Dumps an AST for a specified FILE on the commandline"""
+"""Dump an AST for a specified FILE on the commandline."""
 
-from cmakeast import ast, ast_visitor
 import argparse
+
 import sys
+
+from cmakeast import ast
+from cmakeast import ast_visitor
 
 
 def _parse_arguments():
-    """Returns a parser context result"""
+    """Return a parser context result."""
     parser = argparse.ArgumentParser(description="CMake AST Dumper")
     parser.add_argument("filename", nargs=1, metavar=("FILE"),
                         help="read FILE")
@@ -19,9 +22,9 @@ def _parse_arguments():
 
 
 def _print_details(extra=None):
-    """Returns a function that prints node details"""
+    """Return a function that prints node details."""
     def print_node_handler(name, node, depth):
-        """Standard printer for a node"""
+        """Standard printer for a node."""
         line = "{0}{1} {2} ({3}:{4})".format(depth,
                                              (" " * depth),
                                              name,
@@ -36,7 +39,7 @@ def _print_details(extra=None):
 
 
 def do_print(filename):
-    """Print the AST of filename"""
+    """Print the AST of filename."""
     with open(filename) as cmake_file:
         body = ast.parse(cmake_file.read())
 
@@ -56,8 +59,7 @@ def do_print(filename):
 
 
 def main():
-    """Parse the filename passed on the commandline and dump its AST
-
+    """Parse the filename passed on the commandline and dump its AST.
 
     The AST will be dumped in tree form, with one indent for every new
     control flow block

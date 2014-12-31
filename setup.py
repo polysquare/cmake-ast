@@ -3,21 +3,27 @@
 # Installation and setup script for cmakeast
 #
 # See LICENCE.md for Copyright information
-"""Installation and setup script for cmakeast"""
+"""Installation and setup script for cmakeast."""
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(name="cmakeast",
-      version="0.0.8",
-      description="CMake AST",
-      long_description="Reduce a CMake file to an abstract syntax tree",
+      version="0.0.9",
+      description="Parse a CMake file into an Abstract Syntax Tree.",
+      long_description_markdown_filename="README.md",
       author="Sam Spilsbury",
       author_email="smspillaz@gmail.com",
       classifiers=["Development Status :: 3 - Alpha",
+                   "Programming Language :: Python :: 2",
+                   "Programming Language :: Python :: 2.7",
+                   "Programming Language :: Python :: 3"
+                   "Programming Language :: Python :: 3.1",
+                   "Programming Language :: Python :: 3.2",
+                   "Programming Language :: Python :: 3.3",
+                   "Programming Language :: Python :: 3.4",
                    "Intended Audience :: Developers",
                    "Topic :: Software Development :: Build Tools",
-                   "License :: OSI Approved :: MIT License",
-                   "Programming Language :: Python :: 3"],
+                   "License :: OSI Approved :: MIT License"],
       url="http://github.com/polysquare/cmake-ast",
       license="MIT",
       keywords="development ast cmake",
@@ -36,4 +42,5 @@ setup(name="cmakeast",
               "cmake-print-ast=cmakeast.printer:main"
           ]
       },
-      test_suite="nose.collector")
+      test_suite="nose.collector",
+      zip_safe=True)
