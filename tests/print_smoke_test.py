@@ -4,14 +4,19 @@
 # distribution
 #
 # See LICENCE.md for Copyright information
-"""Smoke test cmake-print-ast"""
+"""Smoke test cmake-print-ast."""
+
+import os
+
+import subprocess
+
+import sys
+
+import cmakeast
 
 from nose_parameterized import parameterized
-import cmakeast
-import os
-import subprocess
-import sys
-import unittest
+
+import testtools
 
 if sys.version_info.major >= 3:
     import shutil
@@ -21,8 +26,7 @@ else:
 
 # First find cmake and then find the module path
 def _discover_test_files():
-    """Discover a list of files to run smoke tests on
-
+    """Discover a list of files to run smoke tests on.
 
     This is generally every file that came with the cmake distribution
     """
@@ -60,11 +64,12 @@ def _discover_test_files():
     return test_files
 
 
-class TestPrintAST(unittest.TestCase):
-    """Smoke tests for printing the AST"""
+class TestPrintAST(testtools.TestCase):  # pylint:disable=R0903
+
+    """Smoke tests for printing the AST."""
 
     @parameterized.expand(_discover_test_files())
     def test_smoke(self, filename):
-        """Run printer against {0}""".format(filename)
+        """Run printer against {0}.""".format(filename)
         cmakeast.printer.do_print(filename)
         self.assertTrue(True)

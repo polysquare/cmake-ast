@@ -1,4 +1,7 @@
 language: python
+cache:
+  directories:
+  - ~/virtualenv
 python:
 - '2.7'
 - '3.4'
@@ -13,23 +16,18 @@ install:
      sudo apt-get update;
      sudo apt-get install cmake;
   fi
-- pip install -e .[test]
-- pip install polysquare-generic-file-linter python-coveralls flake8 pep8-naming pylint coverage
-- if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then
-    pip install http://sourceforge.net/projects/pychecker/files/pychecker/0.8.19/pychecker-0.8.19.tar.gz/download;
-  fi
-- gem install mdl
+- wget public-travis-scripts.polysquare.org/python-install.sh
+- wget public-travis-scripts.polysquare.org/python-lint.sh
+- wget public-travis-scripts.polysquare.org/python-tests.sh
+- wget public-travis-scripts.polysquare.org/python-coverage.sh
+- wget public-travis-scripts.polysquare.org/project-lint.sh
+- bash python-install.sh
 script:
-- python setup.py build
-- coverage run --source=cmakeast setup.py test
-- python setup.py install
-- pylint -f colorized tests/ cmakeast/ setup.py --disable=r0903,R0904
-- if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then
-    pychecker tests/*.py cmakeast/*.py;
-  fi
-- flake8 tests/ cmakeast/ setup.py
-- mdl .
-- find cmakeast tests setup.py -type f -name "*.py" | xargs -L 1 polysquare-generic-file-linter
+- bash project-lint.sh -d . -e py
+- bash python-lint.sh -m cmakeast
+- bash python-tests.sh -m cmakeast
+after_success:
+- bash python-coverage.sh
 after_success:
 - coverage report -m
 - coveralls

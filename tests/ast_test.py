@@ -8,40 +8,46 @@
 # pylint:  disable=no-self-use
 #
 # See LICENCE.md for Copyright information
-"""Test cmake-ast to check if the AST was matched properly"""
+"""Test cmake-ast to check if the AST was matched properly."""
 
 from cmakeast import ast
-from cmakeast.ast import (WordType, TokenType)
+
+from cmakeast.ast import TokenType
+from cmakeast.ast import WordType
+
 from nose_parameterized import parameterized
-from testtools import (ExpectedException, TestCase)
+
+from testtools import ExpectedException
+from testtools import TestCase
+
 from testtools.matchers import Contains
 
 
 def parse_for_word(string):
-    """Helper function to set up an AST and parse it for string"""
+    """Helper function to set up an AST and parse it for string."""
     return ast.parse("f ({0})".format(string)).statements[0].arguments[0]
 
 
 class TestRepresentations(TestCase):
-    """__repr__ function on overriden named tuples"""
+
+    """__repr__ function on overriden named tuples."""
 
     def test_repr_word(self):
-        """Test __repr__ on word shows type"""
-
+        """Test __repr__ on word shows type."""
         word_node = ast.Word(WordType.Variable, "VAR", 0, 0, 0)
         string = repr(word_node)
         self.assertThat(string, Contains("Variable"))
 
     def test_repr_token(self):
-        """Test __repr__ on token shows type"""
-
+        """Test __repr__ on token shows type."""
         word_node = ast.Token(TokenType.LeftParen, "(", 0, 0)
         string = repr(word_node)
         self.assertThat(string, Contains("LeftParen"))
 
 
 class TestTokenizer(TestCase):
-    """Tokenizer"""
+
+    """Tokenizer."""
 
     @parameterized.expand([
         "#comment(\"message\")",
@@ -52,7 +58,7 @@ class TestTokenizer(TestCase):
         "# comment \"text\n#comment\"\n#"
     ])
     def test_comment_consolidation(self, script):
-        """Reassemble comments with quotes in them"""
+        """Reassemble comments with quotes in them."""
         tokens = ast.tokenize(script)
         for tok in tokens:
             self.assertTrue(tok.type in [TokenType.Comment,
@@ -66,27 +72,28 @@ class TestTokenizer(TestCase):
         "#[==[.rst:\n ABC\n 123\n#]==]",
     ])
     def test_detect_rst(self, script):
-        """Detect RST and mark each line as RST"""
+        """Detect RST and mark each line as RST."""
         num_lines = len(script.splitlines(False))
         tokens = ast.tokenize(script)
         for i in range(0, num_lines):
             self.assertEqual(tokens[i].type, TokenType.RST)
 
     def test_detect_end_of_rst(self):
-        """Detect end of RST block"""
+        """Detect end of RST block."""
         tokens = ast.tokenize("#.rst:\n# ABC \nfunction_call ()\n")
         self.assertEqual(tokens[0].type, TokenType.RST)
 
 
 class TestParseGeneral(TestCase):
-    """Things common to all parses"""
+
+    """Thing common to all parses."""
 
     @parameterized.expand([
         (2, "function_call ()"),
         (1, "function_call ()")
     ])
     def test_parse_for_line(self, line, statement):
-        """Parse for line numbers"""
+        """Parse for line numbers."""
         script = "\n" * (line - 1) + statement
         parse_result = ast.parse(script)
         self.assertEqual(parse_result.statements[0].line, line)
@@ -96,7 +103,7 @@ class TestParseGeneral(TestCase):
         (1, "function_call ()"),
     ])
     def test_parse_for_col(self, col, statement):
-        """Parse for column number"""
+        """Parse for column number."""
         script = " " * (col - 1) + statement
         parse_result = ast.parse(script)
         self.assertEqual(parse_result.statements[0].col, col)
@@ -106,7 +113,7 @@ class TestParseGeneral(TestCase):
         (1, "function_call (ARG)"),
     ])
     def test_parse_arg_for_col(self, col, statement):
-        """Parse for column number of argument"""
+        """Parse for column number of argument."""
         function_call_len = len("function_call (")
         script = " " * (col - 1) + statement
         parse_result = ast.parse(script)
@@ -115,10 +122,11 @@ class TestParseGeneral(TestCase):
 
 
 class TestParseWord(TestCase):
-    """Test case for parsing individual arguments"""
+
+    """Test case for parsing individual arguments."""
 
     def test_parse_single_word(self):
-        """Parse a word from an argument"""
+        """Parse a word from an argument."""
         self.assertTrue(isinstance(parse_for_word("ARG"), ast.Word))
 
     @parameterized.expand([
@@ -126,8 +134,7 @@ class TestParseWord(TestCase):
         "_ABC_DEF"
     ])
     def test_parse_variable_type(self, string):
-        """Parse a word from an argument and its type is Variable
-
+        """Parse a word from an argument and its type is Variable.
 
         Variable types are alphanums and underscore, with the first character
         not being a number
@@ -137,8 +144,7 @@ class TestParseWord(TestCase):
         self.assertEqual(parse_result.contents, string)
 
     def test_parse_variable_deref_type(self):
-        """Parse a word from an argument and its type is VariableDereference
-
+        """Parse a word from an argument and its type is VariableDereference.
 
         Variable types are alphanums and underscore inside of a dereference,
         (eg ${VARIABLE})
@@ -159,8 +165,7 @@ class TestParseWord(TestCase):
         "ARG=\"BAR\""
     ])
     def test_parse_unq_lit_type(self, string):
-        """Parse a word from an argument and its type is CompoundLiteral
-
+        """Parse a word from an argument and its type is CompoundLiteral.
 
         CompoundLiteral types are any non-quoted sequence of characters
         which are not parens, but also not entirely alphanumeric characters
@@ -171,7 +176,7 @@ class TestParseWord(TestCase):
         self.assertEqual(parse_result.contents, string)
 
     def test_suppress_extraneous_parens(self):
-        """Convert unquoted parens in function arguments to CompoundLiteral"""
+        """Convert unquoted parens in function arguments to CompoundLiteral."""
         parse_result = ast.parse("f ( ( ABC ) )")
         arguments = parse_result.statements[0].arguments
 
@@ -186,8 +191,7 @@ class TestParseWord(TestCase):
         "\"ABC 'ABC'\""
     ])
     def test_parse_quo_lit_type(self, quoted_string):
-        """Parse a word from an argument and its type is String
-
+        """Parse a word from an argument and its type is String.
 
         String types are any quoted_sequences of characters surrounded by
         whitespace, parens or line endings
@@ -209,8 +213,7 @@ class TestParseWord(TestCase):
         "\"\nMULTI\n# LINE\""  # Quote at end of line
     ])
     def test_parse_multiline_string(self, multiline_string):
-        """Parse a multiline string from an argument.
-
+        """Parse a multiline string from an argument..
 
         There should only be one argument to the passed function and its
         type should be string
@@ -220,8 +223,7 @@ class TestParseWord(TestCase):
         self.assertEqual(parse_result.contents, multiline_string)
 
     def test_parse_multi_multilines(self):
-        """Parse a multiple multiline strings from arguments.
-
+        """Parse a multiple multiline strings from arguments..
 
         There should only be two arguments to the passed function and their
         type should be string
@@ -243,8 +245,7 @@ class TestParseWord(TestCase):
         "0"
     ])
     def test_parse_num_lit_type(self, num):
-        """Parse a word from an argument and its type is Number
-
+        """Parse a word from an argument and its type is Number.
 
         Number types are positive or negative numbers 0-9
         """
@@ -254,14 +255,16 @@ class TestParseWord(TestCase):
 
 
 class TestParseFunctionCall(TestCase):
-    """Test case for parsing function calls"""
+
+    """Test case for parsing function calls."""
+
     def test_parse_function_call(self):
-        """Parse for FunctionCall"""
+        """Parse for FunctionCall."""
         self.assertTrue(isinstance(ast.parse("my_function ()\n").statements[0],
                                    ast.FunctionCall))
 
     def test_function_call_name(self):
-        """Parse for FunctionCall name"""
+        """Parse for FunctionCall name."""
         contents = "my_function ()\n"
         self.assertEqual(ast.parse(contents).statements[0].name, "my_function")
 
@@ -270,7 +273,7 @@ class TestParseFunctionCall(TestCase):
         "my_function (ARG_ONE\nARG_TWO)\n"
     ])
     def test_function_call_args(self, contents):
-        """Parse for FunctionCall args"""
+        """Parse for FunctionCall args."""
         body = ast.parse(contents)
         self.assertTrue(isinstance(body.statements[0].arguments[0],
                                    ast.Word))
@@ -278,17 +281,20 @@ class TestParseFunctionCall(TestCase):
                                    ast.Word))
 
 
-class TestParseBodyStatement(TestCase):
-    """Test parsing header/body statements generally"""
+class TestParseBodyStatement(TestCase):  # pylint:disable=R0903
+
+    """Test parsing header/body statements generally."""
 
     def test_body_syntax_error(self):
-        """Syntax error reported where function call does not have parens"""
+        """Syntax error reported where function call does not have parens."""
         with ExpectedException(RuntimeError, "Syntax Error"):
             ast.parse("function (func)\nendfunction")
 
 
 class TestParseForeachStatement(TestCase):
-    """Test case for parsing foreach statements"""
+
+    """Test case for parsing foreach statements."""
+
     foreach_statement = """
     foreach (VAR ${LIST})\n
     \n
@@ -298,34 +304,36 @@ class TestParseForeachStatement(TestCase):
     """
 
     def test_parse_foreach_statement(self):
-        """Parse for ForeachStatement"""
+        """Parse for ForeachStatement."""
         body = ast.parse(self.foreach_statement)
         self.assertTrue(isinstance(body.statements[0], ast.ForeachStatement))
 
     def test_foreach_statement_header(self):
-        """Parse for foreach function call"""
+        """Parse for foreach function call."""
         body = ast.parse(self.foreach_statement)
         self.assertTrue(isinstance(body.statements[0].header,
                                    ast.FunctionCall))
 
     def test_foreach_header_name(self):
-        """Parse for foreach function call, check if has name foreach"""
+        """Parse for foreach function call, check if has name foreach."""
         body = ast.parse(self.foreach_statement)
         self.assertEqual(body.statements[0].header.name, "foreach")
 
     def test_foreach_body(self):
-        """Check that the foreach body is a FunctionCall with name message"""
+        """Check that the foreach body is a FunctionCall with name message."""
         body = ast.parse(self.foreach_statement)
         self.assertEqual(body.statements[0].body[0].name, "message")
 
     def test_foreach_footer_name(self):
-        """Parse for foreach footer, check if has name endforeach"""
+        """Parse for foreach footer, check if has name endforeach."""
         body = ast.parse(self.foreach_statement)
         self.assertEqual(body.statements[0].footer.name, "endforeach")
 
 
 class TestParseWhileStatement(TestCase):
-    """Test case for parsing while statements"""
+
+    """Test case for parsing while statements."""
+
     while_statement = """
     while (VAR LESS 3)\n
     \n
@@ -335,34 +343,36 @@ class TestParseWhileStatement(TestCase):
     """
 
     def test_parse_while_statement(self):
-        """Parse for WhileStatement"""
+        """Parse for WhileStatement."""
         body = ast.parse(self.while_statement)
         self.assertTrue(isinstance(body.statements[0], ast.WhileStatement))
 
     def test_while_statement_header(self):
-        """Parse for while function call"""
+        """Parse for while function call."""
         body = ast.parse(self.while_statement)
         self.assertTrue(isinstance(body.statements[0].header,
                                    ast.FunctionCall))
 
     def test_while_header_name(self):
-        """Parse for while function call, check if has name while"""
+        """Parse for while function call, check if has name while."""
         body = ast.parse(self.while_statement)
         self.assertEqual(body.statements[0].header.name, "while")
 
     def test_while_body(self):
-        """Check that the while body is a FunctionCall with name math"""
+        """Check that the while body is a FunctionCall with name math."""
         body = ast.parse(self.while_statement)
         self.assertEqual(body.statements[0].body[0].name, "math")
 
     def test_while_footer_name(self):
-        """Parse for while footer, check if has name endwhile"""
+        """Parse for while footer, check if has name endwhile."""
         body = ast.parse(self.while_statement)
         self.assertEqual(body.statements[0].footer.name, "endwhile")
 
 
 class TestParseFunctionDefintion(TestCase):
-    """Test case for parsing function definitions"""
+
+    """Test case for parsing function definitions."""
+
     function_definition = """
     function (my_function ARG_ONE ARG_TWO)\n
     \n
@@ -372,34 +382,36 @@ class TestParseFunctionDefintion(TestCase):
     """
 
     def test_parse_function_definition(self):
-        """Parse for FunctionDefinition"""
+        """Parse for FunctionDefinition."""
         body = ast.parse(self.function_definition)
         self.assertTrue(isinstance(body.statements[0], ast.FunctionDefinition))
 
     def test_function_definition_header(self):
-        """Parse for function function call"""
+        """Parse for function function call."""
         body = ast.parse(self.function_definition)
         self.assertTrue(isinstance(body.statements[0].header,
                                    ast.FunctionCall))
 
     def test_function_header_name(self):
-        """Parse for function function call, check if has name function"""
+        """Parse for function function call, check if has name function."""
         body = ast.parse(self.function_definition)
         self.assertEqual(body.statements[0].header.name, "function")
 
     def test_function_body(self):
-        """Check that the function body is a FunctionCall with name message"""
+        """Check that the function body is a FunctionCall with name message."""
         body = ast.parse(self.function_definition)
         self.assertEqual(body.statements[0].body[0].name, "message")
 
     def test_function_footer_name(self):
-        """Parse for function footer, check if has name endfunction"""
+        """Parse for function footer, check if has name endfunction."""
         body = ast.parse(self.function_definition)
         self.assertEqual(body.statements[0].footer.name, "endfunction")
 
 
 class TestParseMacroDefintion(TestCase):
-    """Test case for parsing macro definitions"""
+
+    """Test case for parsing macro definitions."""
+
     macro_definition = """
     macro (my_macro ARG_ONE ARG_TWO)\n
     \n
@@ -409,34 +421,36 @@ class TestParseMacroDefintion(TestCase):
     """
 
     def test_parse_macro_definition(self):
-        """Parse for MacroDefinition"""
+        """Parse for MacroDefinition."""
         body = ast.parse(self.macro_definition)
         self.assertTrue(isinstance(body.statements[0], ast.MacroDefinition))
 
     def test_macro_definition_header(self):
-        """Parse for macro function call"""
+        """Parse for macro function call."""
         body = ast.parse(self.macro_definition)
         self.assertTrue(isinstance(body.statements[0].header,
                                    ast.FunctionCall))
 
     def test_macro_header_name(self):
-        """Parse for macro function call, check if has name macro"""
+        """Parse for macro function call, check if has name macro."""
         body = ast.parse(self.macro_definition)
         self.assertEqual(body.statements[0].header.name, "macro")
 
     def test_macro_body(self):
-        """Check that the macro body is a FunctionCall with name message"""
+        """Check that the macro body is a FunctionCall with name message."""
         body = ast.parse(self.macro_definition)
         self.assertEqual(body.statements[0].body[0].name, "message")
 
     def test_macro_footer_name(self):
-        """Parse for macro footer, check if has name endmacro"""
+        """Parse for macro footer, check if has name endmacro."""
         body = ast.parse(self.macro_definition)
         self.assertEqual(body.statements[0].footer.name, "endmacro")
 
 
 class TestParseIfBlock(TestCase):
-    """Test case for pasing if, else, else-if blocks"""
+
+    """Test case for pasing if, else, else-if blocks."""
+
     if_else_if_block = """
     if (FOO)\n
 \n
@@ -454,50 +468,50 @@ class TestParseIfBlock(TestCase):
 """
 
     def test_parse_for_if_block(self):
-        """Parse for IfBlock"""
+        """Parse for IfBlock."""
         body = ast.parse(self.if_else_if_block)
         self.assertTrue(isinstance(body.statements[0], ast.IfBlock))
 
     def test_parse_for_if_statement(self):
-        """Parse for IfStatement"""
+        """Parse for IfStatement."""
         body = ast.parse(self.if_else_if_block)
         self.assertTrue(isinstance(body.statements[0].if_statement,
                                    ast.IfStatement))
 
     def test_if_statement_has_header(self):
-        """Parse for IfStatement header - should be a FunctionCall"""
+        """Parse for IfStatement header - should be a FunctionCall."""
         body = ast.parse(self.if_else_if_block)
         if_statement = body.statements[0].if_statement
         self.assertTrue(isinstance(if_statement.header, ast.FunctionCall))
 
     def test_if_statement_has_body(self):
-        """Parse for IfStatement body first element should be FunctionCall"""
+        """Parse for IfStatement body first element should be FunctionCall."""
         body = ast.parse(self.if_else_if_block)
         if_statement = body.statements[0].if_statement
         self.assertTrue(isinstance(if_statement.body[0], ast.FunctionCall))
         self.assertEqual(if_statement.body[0].arguments[0].contents, "IF")
 
     def test_else_statement_has_header(self):
-        """Parse for ElseStatement header - should be a FunctionCall"""
+        """Parse for ElseStatement header - should be a FunctionCall."""
         body = ast.parse(self.if_else_if_block)
         else_statement = body.statements[0].else_statement
         self.assertTrue(isinstance(else_statement.header, ast.FunctionCall))
 
     def test_else_statement_has_body(self):
-        """Parse for ElseStatement body first element should be FunctionCall"""
+        """Parse for ElseStatement, first element should be FunctionCall."""
         body = ast.parse(self.if_else_if_block)
         else_statement = body.statements[0].else_statement
         self.assertTrue(isinstance(else_statement.body[0], ast.FunctionCall))
         self.assertEqual(else_statement.body[0].arguments[0].contents, "ELSE")
 
     def test_elseif_has_header(self):
-        """Parse for ElseIfStatement header - should be a FunctionCall"""
+        """Parse for ElseIfStatement header - should be a FunctionCall."""
         body = ast.parse(self.if_else_if_block)
         elseif_statement = body.statements[0].elseif_statements[0]
         self.assertTrue(isinstance(elseif_statement.header, ast.FunctionCall))
 
     def test_elseif_statement_has_body(self):
-        """First element of ElseIfStatement body should be FunctionCall"""
+        """First element of ElseIfStatement body should be FunctionCall."""
         body = ast.parse(self.if_else_if_block)
         elseif_statement = body.statements[0].elseif_statements[0]
         self.assertTrue(isinstance(elseif_statement.body[0], ast.FunctionCall))
@@ -505,7 +519,7 @@ class TestParseIfBlock(TestCase):
                          "ELSEIF")
 
     def test_if_block_in_function(self):
-        """Check if block detected inside of function call"""
+        """Check if block detected inside of function call."""
         script = """
         function (my_function FOO)\n
         \n
@@ -523,7 +537,7 @@ class TestParseIfBlock(TestCase):
         self.assertTrue(isinstance(function_definition.body[0], ast.IfBlock))
 
     def test_parse_for_endif_footer(self):
-        """Parse for footer (endif)"""
+        """Parse for footer (endif)."""
         body = ast.parse(self.if_else_if_block)
         self.assertTrue(isinstance(body.statements[0].footer,
                                    ast.FunctionCall))

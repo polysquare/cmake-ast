@@ -3,8 +3,7 @@
 # Tokenizes a CMake file and turn it into an AST
 #
 # See LICENCE.md for Copyright information
-"""Parses a CMake file to an abstract syntax tree with the following desc
-
+"""Parse a CMake file to an abstract syntax tree with the following desc.
 
 Word
 - (One) Type [type: Variable |
@@ -55,8 +54,9 @@ ToplevelBody
 
 """
 
-from collections import namedtuple
 import re
+
+from collections import namedtuple
 
 FunctionCall = namedtuple("FunctionCall", "name arguments line col index")
 FunctionDefinition = namedtuple("FunctionDefinition",
@@ -86,7 +86,7 @@ _RE_QUOTE_TYPE = re.compile(r"[\"\']")
 
 
 def _lookup_enum_in_ns(namespace, value):
-    """Returns the attribute of namespace corresponding to value"""
+    """Return the attribute of namespace corresponding to value."""
     for attribute in dir(namespace):
         if getattr(namespace, attribute) == value:
             return attribute
@@ -94,12 +94,13 @@ def _lookup_enum_in_ns(namespace, value):
 
 # We have a class here instead of a contant so that we can override
 # __repr__ and print out a human-readable type name
-class Word(namedtuple("Word", "type contents line col index")):
-    """A word-type node"""
+class Word(namedtuple("Word",  # pylint:disable=R0903
+                      "type contents line col index")):
+
+    """A word-type node."""
 
     def __repr__(self):
-        """Print out a representation of this word node"""
-
+        """Print out a representation of this word node."""
         type_string = _lookup_enum_in_ns(WordType, self.type)
         assert type_string is not None
         return ("Word(type={0}, "
@@ -115,12 +116,13 @@ class Word(namedtuple("Word", "type contents line col index")):
 
 # We have a class here instead of a contant so that we can override
 # __repr__ and print out a human-readable type name
-class Token(namedtuple("Token", "type content line col")):
-    """An immutable record representing a token"""
+class Token(namedtuple("Token",  # pylint:disable=R0903
+                       "type content line col")):
+
+    """An immutable record representing a token."""
 
     def __repr__(self):
-        """A string representation of this token"""
-
+        """A string representation of this token."""
         type_string = _lookup_enum_in_ns(TokenType, self.type)
         assert type_string is not None
         return ("Token(type={0}, "
@@ -137,8 +139,9 @@ class Token(namedtuple("Token", "type content line col")):
 # do a lot of type checking to make sure that you don't compare
 # enums of different types. Since we could be analysing
 # quite a lot of code, performance is more important than safety here.
-class WordType(object):
-    """A class with instance variables for word types"""
+class WordType(object):  # pylint:disable=R0903
+
+    """A class with instance variables for word types."""
 
     String = 0
     Number = 1
@@ -147,8 +150,9 @@ class WordType(object):
     CompoundLiteral = 4
 
 
-class TokenType(object):
-    """A class with instance variables for token types"""
+class TokenType(object):  # pylint:disable=R0903
+
+    """A class with instance variables for token types."""
 
     QuotedLiteral = 0
     LeftParen = 1
@@ -172,7 +176,7 @@ class TokenType(object):
 
 # Utility functions to check if tokens are of certain types
 def _is_word_type(token_type):
-    """Returns true if this is a word-type token"""
+    """Return true if this is a word-type token."""
     return token_type in [TokenType.Word,
                           TokenType.QuotedLiteral,
                           TokenType.UnquotedLiteral,
@@ -181,7 +185,7 @@ def _is_word_type(token_type):
 
 
 def _is_in_comment_type(token_type):
-    """Returns true if this kind of token can be inside a comment"""
+    """Return true if this kind of token can be inside a comment."""
     return token_type in [TokenType.Comment,
                           TokenType.Newline,
                           TokenType.Whitespace,
@@ -192,25 +196,25 @@ def _is_in_comment_type(token_type):
 
 
 def _is_begin_quoted_type(token_type):
-    """Returns true if this is a token indicating the beginning of a string"""
+    """Return true if this is a token indicating the beginning of a string."""
     return token_type in [TokenType.BeginSingleQuotedLiteral,
                           TokenType.BeginDoubleQuotedLiteral]
 
 
 def _is_end_quoted_type(token_type):
-    """Returns true if this is a token indicating the end of a string"""
+    """Return true if this is a token indicating the end of a string."""
     return token_type in [TokenType.EndSingleQuotedLiteral,
                           TokenType.EndDoubleQuotedLiteral]
 
 
 def _is_paren_type(token_type):
-    """Returns true if this is a paren-type token"""
+    """Return true if this is a paren-type token."""
     return token_type in [TokenType.LeftParen,
                           TokenType.RightParen]
 
 
 def _get_string_type_from_token(token_type):
-    """Returns 'Single' or 'Double' depending on what kind of string this is"""
+    """Return 'Single' or 'Double' depending on what kind of string this is."""
     return_value = None
     if token_type in [TokenType.BeginSingleQuotedLiteral,
                       TokenType.EndSingleQuotedLiteral]:
@@ -233,8 +237,7 @@ _WORD_TYPES_DISPATCH = {
 
 
 def _word_type(token_type):
-    """Get the type of word for this Word token
-
+    """Get the type of word for this Word token.
 
     Return String if this is a quoted literal.
     Return Number if this is a numeric literal.
@@ -242,7 +245,6 @@ def _word_type(token_type):
     Return Variable if this would be a valid variable name
     Return CompoundLiteral otherwise
     """
-
     assert _is_word_type(token_type)
     return _WORD_TYPES_DISPATCH[token_type]
 
@@ -250,16 +252,15 @@ def _word_type(token_type):
 def _make_header_body_handler(end_body_regex,
                               node_factory,
                               has_footer=True):
-    """Utility function to make a handler for header-body node
-
+    """Utility function to make a handler for header-body node.
 
     A header-body node is any node which has a single function-call
     header and a body of statements inside of it
     """
     def handler(tokens, tokens_len, body_index, function_call):
-        """Handler function"""
+        """Handler function."""
         def _end_header_body_definition(token_index, tokens):
-            """Header body termination function"""
+            """Header body termination function."""
             if end_body_regex.match(tokens[token_index].content):
                 try:
                     if tokens[token_index + 1].type == TokenType.LeftParen:
@@ -303,13 +304,11 @@ _ELSE_BLOCK_HANDLER = _make_header_body_handler(_RE_END_IF_BODY,
 
 
 def _handle_if_block(tokens, tokens_len, body_index, function_call):
-    """Special handler for if-blocks
-
+    """Special handler for if-blocks.
 
     If blocks are special because they can have multiple bodies and have
     multiple terminating keywords for each of those sub-bodies
     """
-
     # First handle the if statement and body
     next_index, if_statement = _IF_BLOCK_IF_HANDLER(tokens,
                                                     tokens_len,
@@ -371,17 +370,15 @@ _FUNCTION_CALL_DISAMBIGUATE = {
 
 # Function calls could be any number of things, disambiguate them
 def _handle_function_call(tokens, tokens_len, index):
-    """Handle function calls, which could include a control statement
-
+    """Handle function calls, which could include a control statement.
 
     In CMake, all control flow statements are also function calls, so handle
     the function call first and then direct tree construction to the
     appropriate control flow statement constructor found in
     FUNCTION_CALL_DISAMBIGUATE
     """
-
     def _end_function_call(token_index, tokens):
-        """Function call termination detector"""
+        """Function call termination detector."""
         return tokens[token_index].type == TokenType.RightParen
 
     # First handle the "function call"
@@ -408,15 +405,13 @@ def _handle_function_call(tokens, tokens_len, index):
 
 
 def _ast_worker(tokens, tokens_len, index, term):
-    """The main collector for all AST functions
-
+    """The main collector for all AST functions.
 
     This function is called recursively to find both variable use and function
     calls and returns a GenericBody with both those variables and function
     calls hanging off of it. The caller can figure out what to do with both of
     those
     """
-
     statements = []
     arguments = []
 
@@ -448,8 +443,7 @@ def _ast_worker(tokens, tokens_len, index, term):
 
 
 def _scan_for_tokens(contents):
-    """Scan a string for tokens and return immediate form tokens"""
-
+    """Scan a string for tokens and return immediate form tokens."""
     # Regexes are in priority order. Changing the order may alter the
     # behaviour of the lexer
     scanner = re.Scanner([
@@ -524,13 +518,13 @@ def _scan_for_tokens(contents):
 
 
 def _replace_token_range(tokens, start, end, replacement):
-    """For a range indicated from start to end, replace with replacement"""
+    """For a range indicated from start to end, replace with replacement."""
     tokens = tokens[:start] + replacement + tokens[end:]
     return tokens
 
 
 def _is_really_comment(tokens, index):
-    """Returns true if the token at index is really a comment"""
+    """Return true if the token at index is really a comment."""
     if tokens[index].type == TokenType.Comment:
         return True
 
@@ -538,36 +532,36 @@ def _is_really_comment(tokens, index):
     try:
         if tokens[index].content.lstrip()[0] == "#":
             return True
-    except IndexError:
+    except IndexError:  # pylint:disable=W0704
         pass
 
     return False
 
 
 class _CommentedLineRecorder(object):
-    """From the beginning of a comment to the end of the line"""
+
+    """From the beginning of a comment to the end of the line."""
 
     def __init__(self, begin, line):
-        """Initialize"""
+        """Initialize."""
         super(_CommentedLineRecorder, self).__init__()
         self.begin = begin
         self.line = line
 
     @staticmethod
     def maybe_start_recording(tokens, index):
-        """Returns a new CommentedLineRecorder when it is time to record"""
+        """Return a new CommentedLineRecorder when it is time to record."""
         if _is_really_comment(tokens, index):
             return _CommentedLineRecorder(index, tokens[index].line)
 
         return None
 
     def consume_token(self, tokens, index, tokens_len):
-        """Consumes a token.
-
+        """Consume a token.
 
         Returns a tuple of (tokens, tokens_len, index) when consumption is
-        completed and tokens have been merged together"""
-
+        completed and tokens have been merged together.
+        """
         finished = False
 
         if tokens[index].line > self.line:
@@ -596,7 +590,7 @@ class _CommentedLineRecorder(object):
 
 
 def _paste_tokens_line_by_line(tokens, token_type, begin, end):
-    """Returns lines of tokens pasted together, line by line"""
+    """Return lines of tokens pasted together, line by line."""
     block_index = begin
 
     while block_index < end:
@@ -625,29 +619,29 @@ def _paste_tokens_line_by_line(tokens, token_type, begin, end):
 
 
 class _RSTCommentBlockRecorder(object):
-    """From beginning of RST comment block to end of block"""
+
+    """From beginning of RST comment block to end of block."""
 
     def __init__(self, begin, begin_line):
-        """Initialize"""
+        """Initialize."""
         super(_RSTCommentBlockRecorder, self).__init__()
         self.begin = begin
         self.last_line_with_comment = begin_line
 
     @staticmethod
     def maybe_start_recording(tokens, index):
-        """Returns a new RSTCommentBlockRecorder when its time to record"""
+        """Return a new RSTCommentBlockRecorder when its time to record."""
         if tokens[index].type == TokenType.BeginRSTComment:
             return _RSTCommentBlockRecorder(index, tokens[index].line)
 
         return None
 
     def consume_token(self, tokens, index, tokens_len):
-        """Consumes a token.
-
+        """Consume a token.
 
         Returns a tuple of (tokens, tokens_len, index) when consumption is
-        completed and tokens have been merged together"""
-
+        completed and tokens have been merged together.
+        """
         if _is_really_comment(tokens, index):
             self.last_line_with_comment = tokens[index].line
 
@@ -669,25 +663,26 @@ class _RSTCommentBlockRecorder(object):
 
 
 class _InlineRSTRecorder(object):
-    """From beginning of inline RST to end of inline RST"""
+
+    """From beginning of inline RST to end of inline RST."""
 
     def __init__(self, begin):
-        """Initialize"""
+        """Initialize."""
         super(_InlineRSTRecorder, self).__init__()
         self.begin = begin
 
     @staticmethod
     def maybe_start_recording(tokens, index):
-        """Returns a new InlineRSTRecorder when its time to record"""
+        """Return a new InlineRSTRecorder when its time to record."""
         if tokens[index].type == TokenType.BeginInlineRST:
             return _InlineRSTRecorder(index)
 
     def consume_token(self, tokens, index, tokens_len):
-        """Consumes a token.
-
+        """Consume a token.
 
         Returns a tuple of (tokens, tokens_len, index) when consumption is
-        completed and tokens have been merged together"""
+        completed and tokens have been merged together.
+        """
         del tokens_len
 
         if tokens[index].type == TokenType.EndInlineRST:
@@ -698,17 +693,18 @@ class _InlineRSTRecorder(object):
 
 
 class _MultilineStringRecorder(object):
-    """From the beginning of a begin_quoted_literal to end_quoted_literal"""
+
+    """From the beginning of a begin_quoted_literal to end_quoted_literal."""
 
     def __init__(self, begin, quote_type):
-        """Initialize"""
+        """Initialize."""
         super(_MultilineStringRecorder, self).__init__()
         self.begin = begin
         self.quote_type = quote_type
 
     @staticmethod
     def maybe_start_recording(tokens, index):
-        """Returns a new MultilineStringRecorder when its time to record"""
+        """Return a new MultilineStringRecorder when its time to record."""
         if _is_begin_quoted_type(tokens[index].type):
             string_type = _get_string_type_from_token(tokens[index].type)
             return _MultilineStringRecorder(index, string_type)
@@ -716,11 +712,11 @@ class _MultilineStringRecorder(object):
         return None
 
     def consume_token(self, tokens, index, tokens_len):
-        """Consumes a token.
-
+        """Consume a token.
 
         Returns tuple of (tokens, tokens_len, index) when consumption is
-        completed and tokens have been merged together"""
+        completed and tokens have been merged together.
+        """
         del tokens_len
 
         consumption_ended = False
@@ -789,9 +785,58 @@ _RECORDERS = [
 ]
 
 
-def _compress_tokens(tokens):
-    """Pastes multi-line strings, comments, RST etc together.
+class _EdgeCaseStrayParens(object):  # pylint:disable=R0903
 
+    """Stateful function detecting stray comments."""
+
+    def __init__(self):
+        """Initialize paren_count."""
+        super(self.__class__, self).__init__()
+        self.paren_count = 0
+
+    def __call__(self, tokens, index):
+        """Track parens."""
+        token_type = tokens[index].type
+
+        if token_type == TokenType.LeftParen:
+            self.paren_count += 1
+
+        if self.paren_count > 1:
+            tokens[index] = Token(type=TokenType.UnquotedLiteral,
+                                  content=tokens[index].content,
+                                  line=tokens[index].line,
+                                  col=tokens[index].col)
+
+        if token_type == TokenType.RightParen:
+            self.paren_count -= 1
+
+    def __enter__(self):
+        """Nothing."""
+        return self
+
+    def __exit__(self, exc_type, value, traceback):
+        """Assertion."""
+        del exc_type
+        del value
+        del traceback
+        assert self.paren_count == 0
+
+
+def _find_recorder(recorder, tokens, index):
+    """Given a current recorder and a token index, try to find a recorder."""
+    if recorder is None:
+        # See if we can start recording something
+        for recorder_factory in _RECORDERS:
+            recorder = recorder_factory.maybe_start_recording(tokens,
+                                                              index)
+            if recorder is not None:
+                return recorder
+
+    return recorder
+
+
+def _compress_tokens(tokens):
+    """Paste multi-line strings, comments, RST etc together.
 
     This function works by iterating over each over the _RECORDERS to determine
     if we should start recording a token sequence for pasting together. If
@@ -805,7 +850,7 @@ def _compress_tokens(tokens):
     recorder = None
 
     def _edge_case_stray_end_quoted(tokens, index):
-        """Convert stray end_quoted_literals to unquoted_literals"""
+        """Convert stray end_quoted_literals to unquoted_literals."""
         # In this case, "tokenize" the matched token into what it would
         # have looked like had the last quote not been there. Put the
         # last quote on the end of the final token and call it an
@@ -815,41 +860,10 @@ def _compress_tokens(tokens):
                               line=tokens[index].line,
                               col=tokens[index].col)
 
-    class EdgeCaseStrayParens(object):
-        """Stateful function detecting stray comments"""
-
-        def __init__(self):
-            super(self.__class__, self).__init__()
-            self.paren_count = 0
-
-        def __call__(self, tokens, index):
-            """Track parens"""
-            token_type = tokens[index].type
-
-            if token_type == TokenType.LeftParen:
-                self.paren_count += 1
-
-            if self.paren_count > 1:
-                tokens[index] = Token(type=TokenType.UnquotedLiteral,
-                                      content=tokens[index].content,
-                                      line=tokens[index].line,
-                                      col=tokens[index].col)
-
-            if token_type == TokenType.RightParen:
-                self.paren_count -= 1
-
-        def __enter__(self):
-            """Nothing"""
-            return self
-
-        def __exit__(self, *args):
-            """Assertion"""
-            assert self.paren_count == 0
-
     tokens_len = len(tokens)
     index = 0
 
-    with EdgeCaseStrayParens() as edge_case_stray_parens:
+    with _EdgeCaseStrayParens() as edge_case_stray_parens:
         edge_cases = [
             (_is_paren_type, edge_case_stray_parens),
             (_is_end_quoted_type, _edge_case_stray_end_quoted),
@@ -857,13 +871,7 @@ def _compress_tokens(tokens):
 
         while index < tokens_len:
 
-            if recorder is None:
-                # See if we can start recording something
-                for recorder_factory in _RECORDERS:
-                    recorder = recorder_factory.maybe_start_recording(tokens,
-                                                                      index)
-                    if recorder is not None:
-                        break
+            recorder = _find_recorder(recorder, tokens, index)
 
             if recorder is not None:
                 # Do recording
@@ -884,7 +892,7 @@ def _compress_tokens(tokens):
 
 
 def tokenize(contents):
-    """Parse a string called contents for CMake tokens"""
+    """Parse a string called contents for CMake tokens."""
     tokens = _scan_for_tokens(contents)
     tokens = _compress_tokens(tokens)
     tokens = [token for token in tokens if token.type != TokenType.Whitespace]
@@ -892,8 +900,7 @@ def tokenize(contents):
 
 
 def parse(contents, tokens=None):
-    """Parse a string called contents for an AST and return it"""
-
+    """Parse a string called contents for an AST and return it."""
     # Shortcut for users who are interested in tokens
     if tokens is None:
         tokens = [t for t in tokenize(contents)]

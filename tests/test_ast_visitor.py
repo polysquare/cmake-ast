@@ -3,28 +3,32 @@
 # Tests the visit_ast_recursive function
 #
 # See LICENCE.md for Copyright information
-"""Tests the visit_ast_recursive function"""
+"""Test the visit_ast_recursive function."""
 
-from cmakeast import ast, ast_visitor
-from nose_parameterized import parameterized
+from cmakeast import ast
+from cmakeast import ast_visitor
+
 from mock import MagicMock
+
+from nose_parameterized import parameterized
+
 from testtools import TestCase
+
 from testtools.matchers import Contains
 
 
 def _ast_args_to_kwargs_wrapper(listener):
-    """Converts ast_visitor.recurse callback args to kwargs and forwards"""
-
+    """Convert ast_visitor.recurse callback args to kwargs and forwards."""
     def _ast_listener(name, node, depth):
-        """Forwards to listener"""
-
+        """Forward to listener."""
         listener(name=name, node=node, depth=depth)
 
     return _ast_listener
 
 
 class TestVisitASTRecursive(TestCase):
-    """Test fixture for visit_ast_recursive"""
+
+    """Test fixture for visit_ast_recursive."""
 
     @parameterized.expand([
         ("ToplevelBody", "toplevel", ""),
@@ -44,7 +48,7 @@ class TestVisitASTRecursive(TestCase):
         ("Word", "word", "call (ARGUMENT)\n")
     ])
     def test_visit(self, node_type, keyword, script):
-        """Visit a {0} ({1}) node""".format(node_type, keyword)
+        """Visit a {0} ({1}) node.""".format(node_type, keyword)
         tree = ast.parse(script)
         listener = MagicMock()
         wrapper = _ast_args_to_kwargs_wrapper(listener)
@@ -54,7 +58,7 @@ class TestVisitASTRecursive(TestCase):
                         Contains(("name", node_type)))
 
     def test_arguments_depth(self):
-        """Test arguments to a function call have depth"""
+        """Test arguments to a function call have depth."""
         tree = ast.parse("function_call (ARGUMENT)")
         listener = MagicMock()
         wrapper = _ast_args_to_kwargs_wrapper(listener)
@@ -63,7 +67,7 @@ class TestVisitASTRecursive(TestCase):
                         Contains(("depth", 2)))
 
     def test_body_depth(self):
-        """Test node body has depth"""
+        """Test node body has depth."""
         tree = ast.parse("function_call (ARGUMENT)")
         listener = MagicMock()
         wrapper = _ast_args_to_kwargs_wrapper(listener)
