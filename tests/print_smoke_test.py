@@ -30,10 +30,13 @@ def _discover_test_files():
 
     This is generally every file that came with the cmake distribution
     """
+    # List of files we will be testing against
+    test_files = []
+
     path_to_cmake = shutil.which("cmake")
     if path_to_cmake is None:
         sys.stderr.write("cmake not found on this system")
-        sys.exit(0)
+        return test_files
 
     version_line = subprocess.check_output([path_to_cmake,
                                             "--version"]).decode("utf-8")
@@ -50,9 +53,6 @@ def _discover_test_files():
 
     # These files are templates and invalid cmake code
     exclude_files = ["run_nvcc.cmake"]
-
-    # List of files we will be testing against
-    test_files = []
 
     for path, dirs, files in os.walk(cmake_module_path):
         del dirs

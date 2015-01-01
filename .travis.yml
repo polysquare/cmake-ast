@@ -1,38 +1,43 @@
 language: python
+sudo: false
 cache:
   directories:
   - ~/virtualenv
+  - ~/container
 python:
 - '2.7'
 - '3.4'
 - 'pypy'
 env:
-- CMAKE_VERSION="3.1"
+- CMAKE_VERSION="latest"
+- CMAKE_VERSION="3.0"
 - CMAKE_VERSION="2.8"
 install:
-- if [ ${CMAKE_VERSION} == "3.1" ]; then
-     sudo apt-get -y purge cmake;
-     sudo add-apt-repository -y ppa:kubuntu-ppa/beta;
-     sudo apt-get update;
-     sudo apt-get install cmake;
+# Setup a distro container so that we can install CMake. This is used to
+# run the smoke tests against a CMake installation.
+#
+# First copy the packages and repositories files to our current
+# working directory from ci/DEPENDENCIES.Ubuntu.{cmake_release} and
+# ci/REPOSITORIES.Ubuntu.{cmake_release}.
+#
+# polysquare-travis-container does not work with pypy, so we cannot do this
+# on pypy.
+- if [[ $TRAVIS_PYTHON_VERSION != 'pypy' ]] ; then
+    export CONTAINER_DISTRO=Ubuntu;
+    export CONTAINER_RELEASE=precise;
+    cp "ci/REPOSITORIES.Ubuntu.${CMAKE_VERSION}" REPOSITORIES.Ubuntu;
+    cp "ci/DEPENDENCIES.Ubuntu" DEPENDENCIES.Ubuntu;
+    curl -L public-travis-scripts.polysquare.org/distro-container.sh | bash;
+    export PATH=${HOME}/container/ubuntu-core-12.04.5-core-amd64.tar.gz.root/usr/bin:${PATH};
   fi
-- wget public-travis-scripts.polysquare.org/python-install.sh
-- wget public-travis-scripts.polysquare.org/python-lint.sh
-- wget public-travis-scripts.polysquare.org/python-tests.sh
-- wget public-travis-scripts.polysquare.org/python-coverage.sh
-- wget public-travis-scripts.polysquare.org/project-lint.sh
-- bash python-install.sh
+- curl -L public-travis-scripts.polysquare.org/python-setup-with-doc.sh | bash
 script:
-- bash project-lint.sh -d . -e py
-- bash python-lint.sh -m cmakeast
-- bash python-tests.sh -m cmakeast
+- export MODULE=cmakeast
+- curl -L public-travis-scripts.polysquare.org/python-test-module.sh | bash
 after_success:
-- bash python-coverage.sh
-after_success:
-- coverage report -m
-- coveralls
-- rm -rf cmakeast.egg-info/
-- rm -rf build/
+- curl -L public-travis-scripts.polysquare.org/python-coverage.sh | bash
+before_deploy:
+- source python-prepare-doc-deploy.sh
 deploy:
   provider: pypi
   user:
