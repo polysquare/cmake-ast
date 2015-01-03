@@ -8,7 +8,7 @@
 from setuptools import find_packages, setup
 
 setup(name="cmakeast",
-      version="0.0.9",
+      version="0.0.10",
       description="Parse a CMake file into an Abstract Syntax Tree.",
       long_description_markdown_filename="README.md",
       author="Sam Spilsbury",
@@ -16,7 +16,7 @@ setup(name="cmakeast",
       classifiers=["Development Status :: 3 - Alpha",
                    "Programming Language :: Python :: 2",
                    "Programming Language :: Python :: 2.7",
-                   "Programming Language :: Python :: 3"
+                   "Programming Language :: Python :: 3",
                    "Programming Language :: Python :: 3.1",
                    "Programming Language :: Python :: 3.2",
                    "Programming Language :: Python :: 3.3",
@@ -43,4 +43,5 @@ setup(name="cmakeast",
           ]
       },
       test_suite="nose.collector",
-      zip_safe=True)
+      zip_safe=True,
+      include_package_data=True)
