@@ -16,21 +16,25 @@ install:
 # Setup a distro container so that we can install CMake. This is used to
 # run the smoke tests against a CMake installation.
 #
-# First copy the packages and repositories files to our current
-# working directory from ci/DEPENDENCIES.Ubuntu.{cmake_release} and
-# ci/REPOSITORIES.Ubuntu.{cmake_release}.
+# The initial build of the container will not contain any of our packages.
+# CMake will be purged from the container and packages will be installed
+# from the CMAKE_VERSION repository files. This is because caching is
+# done on the basis of the python version and not the CMake version.
 #
 # polysquare-travis-container does not work with pypy, so we cannot do this
 # on pypy.
+- curl -L public-travis-scripts.polysquare.org/python-setup-with-doc.sh | bash
+# Export cabal binary path so that setuptools finds it when installing
+# polysquare-travis-container
+- export PATH=${HOME}/.cabal/bin:${PATH}
 - if [[ $TRAVIS_PYTHON_VERSION != 'pypy' ]] ; then
     export CONTAINER_DISTRO=Ubuntu;
     export CONTAINER_RELEASE=precise;
-    cp "ci/REPOSITORIES.Ubuntu.${CMAKE_VERSION}" REPOSITORIES.Ubuntu;
-    cp "ci/DEPENDENCIES.Ubuntu" DEPENDENCIES.Ubuntu;
     curl -L public-travis-scripts.polysquare.org/distro-container.sh | bash;
+    repo=$(cat "ci/REPOSITORIES.Ubuntu.${CMAKE_VERSION}");
     export PATH=${HOME}/container/ubuntu-core-12.04.5-core-amd64.tar.gz.root/usr/bin:${PATH};
+    psq-travis-container-exec ~/container --cmd bash "${PWD}/ci/install-cmake-from-repo.sh" "${repo}";
   fi
-- curl -L public-travis-scripts.polysquare.org/python-setup-with-doc.sh | bash
 script:
 - export MODULE=cmakeast
 - curl -L public-travis-scripts.polysquare.org/python-test-module.sh | bash
