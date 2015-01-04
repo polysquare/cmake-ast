@@ -1,1 +1,1 @@
-{launchpad}/smspillaz/cmake-master/ubuntu {release} main
+deb http://ppa.launchpad.net//smspillaz/cmake-master/ubuntu precise  main
