@@ -1,9 +1,9 @@
-# /tests/test_ast_visitor.py
+# /test/test_ast_visitor.py
 #
-# Tests the visit_ast_recursive function
+# Tests the ast_visitor.recurse function
 #
-# See LICENCE.md for Copyright information
-"""Test the visit_ast_recursive function."""
+# See /LICENCE.md for Copyright information
+"""Test the ast_visitor.recurse function."""
 
 from cmakeast import ast
 from cmakeast import ast_visitor
@@ -18,7 +18,7 @@ from testtools.matchers import Contains
 
 
 def _ast_args_to_kwargs_wrapper(listener):
-    """Convert ast_visitor.recurse callback args to kwargs and forwards."""
+    """Convert ast_visitor.recurse callback args to keywords and forwards."""
     def _ast_listener(name, node, depth):
         """Forward to listener."""
         listener(name=name, node=node, depth=depth)
@@ -28,7 +28,7 @@ def _ast_args_to_kwargs_wrapper(listener):
 
 class TestVisitASTRecursive(TestCase):
 
-    """Test fixture for visit_ast_recursive."""
+    """Test fixture for ast_visitor.recurse."""
 
     @parameterized.expand([
         ("ToplevelBody", "toplevel", ""),
@@ -48,12 +48,12 @@ class TestVisitASTRecursive(TestCase):
         ("Word", "word", "call (ARGUMENT)\n")
     ])
     def test_visit(self, node_type, keyword, script):
-        """Visit a {0} ({1}) node.""".format(node_type, keyword)
+        """Visit a node."""
         tree = ast.parse(script)
         listener = MagicMock()
         wrapper = _ast_args_to_kwargs_wrapper(listener)
         keywords = {keyword: wrapper}
-        ast_visitor.recurse(tree, **keywords)  # pylint:disable=star-args
+        ast_visitor.recurse(tree, **keywords)
         self.assertThat(listener.call_args_list[-1][1].items(),
                         Contains(("name", node_type)))
 

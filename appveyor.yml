@@ -1,13 +1,24 @@
 environment:
   matrix:
     - PYTHON: "C:\\Python34"
+    - PYTHON: "C:\\Python27"
+
+cache:
+ - C:\container
+ - C:\Python34
+ - C:\Python27
 
 install:
- - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
- - python --version
- - "pip install -e .[test]"
+ - ps: $env:PATH="${env:PYTHON};${env:PYTHON}/Scripts;${env:PATH};C:/MinGW/bin"
+ - ps: $env:POLYSQUARE_PREINSTALLED_PYTHON="C:\Python27"
+ - ps: wget public-travis-scripts.polysquare.org/bootstrap.py -OutFile bootstrap
+ - ps: python bootstrap -d C:/container -s container-setup.py -e powershell -p test-env.ps1 --no-mdl
+ - ps: . ./test-env
 
 build: false
 
 test_script:
- - "python setup.py test"
+ - ps: polysquare_run check/python/check.py --no-mdl
+
+after_test:
+ - ps: polysquare_cleanup

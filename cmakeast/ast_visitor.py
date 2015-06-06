@@ -2,7 +2,7 @@
 #
 # A function that recursively visits an AST
 #
-# See LICENCE.md for Copyright information
+# See /LICENCE.md for Copyright information
 """A function that recursively visits an AST."""
 
 from collections import namedtuple
@@ -60,13 +60,13 @@ def _recurse(node, *args, **kwargs):
     kwargs["depth"] = depth + 1
 
     for single in info_for_node.single:
-        _recurse(getattr(node, single),  # pylint:disable=star-args
+        _recurse(getattr(node, single),
                  *args,
                  **recurse_kwargs)
 
     for multi in info_for_node.multi:
         for statement in getattr(node, multi):
-            _recurse(statement,  # pylint:disable=star-args
+            _recurse(statement,
                      *args,
                      **recurse_kwargs)
 
@@ -80,4 +80,4 @@ def recurse(node, *args, **kwargs):
         fwd[node_info.handler] = kwargs.get(node_info.handler, None)
 
     fwd["depth"] = 0
-    _recurse(node, *args, **fwd)  # pylint:disable=star-args
+    _recurse(node, *args, **fwd)

@@ -22,51 +22,62 @@ by tokenization with the `tokens` keyword argument. The return will be a
 toplevel node, with node descriptions as follows:
 
 `Word`
+
 - (One) `Type`
-  * `type: Variable | String | Number | CompoundLiteral | VariableDereference`
+  `type: Variable | String | Number | CompoundLiteral | VariableDereference`
 - (One) `String` `contents`
 
 `Body`
+
 - (Many) (`FunctionCall`, `IfStatement`, `ForeachStatement`, `WhileStatement`)
 
 `FunctionCall`
+
 - (One) `Word` `name`
 - (Many) `Word` `arguments`
 
 `FunctionDefinition`
+
 - (One) `FunctionCall` `header`
 - (One) `Body` `body`
 - (One) `FunctionCall` `footer`
 
 `MacroDefinition`
+
 - (One) `FunctionCall` `header`
 - (One) `Body` `body`
 - (One) `FunctionCall` `footer`
 
 `IfStatement`
+
 - (One) `FunctionCall` `header`
 - (One) `Body` `body`
 
 `ElseIfStatement`
+
 - (One) `FunctionCall` `header`
 - (One) `Body` `body`
 
 `ElseStatement`
+
 - (One) `FunctionCall` `header`
 - (One) `Body` `body`
 
 `IfBlock`
+
 - (One) `IfStatement` `if_statement`
 - (Many) `ElseIfStatement` `else_ifs`
 - (One Optional) `ElseStatement` `else_statement`
 - (One) `FunctionCall` `footer`
 
 `ForeachStatement`
+
 - (One) `FunctionCall` `foreach_function`
 - (One) `Body` `body`
 - (One) `FunctionCall` `footer`
 
 `WhileStatement`
+
 - (One) `FunctionCall` `while_function`
 - (One) `Body` `body`
 - (One) `FunctionCall` `footer`
@@ -84,7 +95,6 @@ less verbose. It will traverse every single node by default. Listeners
 matching the signature `def handler (name, node, depth)` can be passed as
 the following keyword arguments to `recurse (body, **kwargs)`:
 
-------------------------------------------
 | Keyword         | Handles Node Type    |
 |:---------------:|:--------------------:|
 | `toplevel`      | `ToplevelBody`       |
@@ -110,9 +120,9 @@ Tokenization
 ------------
 
 To get an even lower level representation, use `cmakeast.ast.tokenize(contents)`
-which divides the file only into tokens. Tokens correspond as follows
+which divides the file only into tokens. Aliases are stored in the `TokenType`
+class in `ast`. Tokens correspond as follows:
 
---------------------------------------------------------------------
 | Token Type        | Description                                  |
 |:-----------------:|:--------------------------------------------:|
 | `QuotedLiteral`   | Something in quotes                          |
@@ -124,5 +134,3 @@ which divides the file only into tokens. Tokens correspond as follows
 | `RST`             | Documentation Comment                        |
 | `Comment`         | Comment                                      |
 | `UnquotedLiteral` | Any character sequence, punctuation included |
-
-Token type aliases are stored in the `TokenType` class in `ast`.
