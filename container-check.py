@@ -6,8 +6,6 @@
 #
 # See /LICENCE.md for Copyright information
 
-import os
-
 
 def run(cont, util, shell, argv=None):
     """Run check/python/check.py in a container."""
