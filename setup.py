@@ -8,7 +8,7 @@
 from setuptools import find_packages, setup
 
 setup(name="cmakeast",
-      version="0.0.10",
+      version="0.0.11",
       description="Parse a CMake file into an Abstract Syntax Tree.",
       long_description_markdown_filename="README.md",
       author="Sam Spilsbury",
