@@ -2,7 +2,7 @@
 #
 # Installation and setup script for cmakeast
 #
-# See LICENCE.md for Copyright information
+# See /LICENCE.md for Copyright information
 """Installation and setup script for cmakeast."""
 
 from setuptools import find_packages, setup
@@ -30,18 +30,24 @@ setup(name="cmakeast",
       packages=find_packages(exclude=["tests"]),
       install_requires=["setuptools"],
       extras_require={
-          "test": ["coverage",
-                   "testtools",
-                   "shutilwhich",
-                   "nose",
-                   "nose-parameterized",
-                   "mock"]
+          "green": ["coverage",
+                    "testtools",
+                    "shutilwhich",
+                    "nose",
+                    "nose-parameterized>=0.4.0",
+                    "mock",
+                    "setuptools-green"],
+          "polysquarelint": ["polysquare-setuptools-lint"]
       },
       entry_points={
           "console_scripts": [
               "cmake-print-ast=cmakeast.printer:main"
           ]
       },
+      dependency_links=[
+          ("https://github.com/smspillaz/nose-parameterized/tarball/"
+           "detailed-docs#egg=nose-parameterized-0.4.0"),
+      ],
       test_suite="nose.collector",
       zip_safe=True,
       include_package_data=True)

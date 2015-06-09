@@ -2,7 +2,7 @@
 #
 # Dumps an AST for a specified FILE on the commandline
 #
-# See LICENCE.md for Copyright information
+# See /LICENCE.md for Copyright information
 """Dump an AST for a specified FILE on the commandline."""
 
 import argparse

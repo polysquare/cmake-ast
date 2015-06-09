@@ -2,8 +2,7 @@ language: python
 sudo: false
 cache:
   directories:
-  - ~/virtualenv
-  - ~/container
+  - container
 python:
 - '2.7'
 - '3.4'
@@ -13,35 +12,15 @@ env:
 - CMAKE_VERSION="3.0"
 - CMAKE_VERSION="2.8"
 install:
-# Setup a distro container so that we can install CMake. This is used to
-# run the smoke tests against a CMake installation.
-#
-# The initial build of the container will not contain any of our packages.
-# CMake will be purged from the container and packages will be installed
-# from the CMAKE_VERSION repository files. This is because caching is
-# done on the basis of the python version and not the CMake version.
-#
-# polysquare-travis-container does not work with pypy, so we cannot do this
-# on pypy.
-- curl -L public-travis-scripts.polysquare.org/python-setup-with-doc.sh | bash
-# Export cabal binary path so that setuptools finds it when installing
-# polysquare-travis-container
-- export PATH=${HOME}/.cabal/bin:${PATH}
-- if [[ $TRAVIS_PYTHON_VERSION != 'pypy' ]] ; then
-    export CONTAINER_DISTRO=Ubuntu;
-    export CONTAINER_RELEASE=precise;
-    curl -L public-travis-scripts.polysquare.org/distro-container.sh | bash;
-    repo=$(cat "ci/REPOSITORIES.Ubuntu.${CMAKE_VERSION}");
-    export PATH=${HOME}/container/ubuntu-core-12.04.5-core-amd64.tar.gz.root/usr/bin:${PATH};
-    psq-travis-container-exec ~/container --cmd bash "${PWD}/ci/install-cmake-from-repo.sh" "${repo}";
-  fi
+ - eval $(curl -LSs --retry 100 --connect-timeout 3 public-travis-scripts.polysquare.org/bootstrap.py | python /dev/stdin -d container -s container-setup.py -e bash -p /dev/stdout --cmake-version ${CMAKE_VERSION})
 script:
-- export MODULE=cmakeast
-- curl -L public-travis-scripts.polysquare.org/python-test-module.sh | bash
+ - polysquare_run check/python/check.py
+before_cache:
+ - polysquare_cleanup
 after_success:
-- curl -L public-travis-scripts.polysquare.org/python-coverage.sh | bash
+ - polysquare_run coverage/python/coverage.py
 before_deploy:
-- source python-prepare-doc-deploy.sh
+ - polysquare_run deploy/python/deploy.py
 deploy:
   provider: pypi
   user:

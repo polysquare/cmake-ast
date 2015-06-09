@@ -2,8 +2,8 @@
 #
 # Tokenizes a CMake file and turn it into an AST
 #
-# See LICENCE.md for Copyright information
-"""Parse a CMake file to an abstract syntax tree with the following desc.
+# See /LICENCE.md for Copyright information
+"""Parse a CMake file to an abstract syntax tree with the following BNF.
 
 Word
 - (One) Type [type: Variable |
@@ -92,9 +92,9 @@ def _lookup_enum_in_ns(namespace, value):
             return attribute
 
 
-# We have a class here instead of a contant so that we can override
+# We have a class here instead of a constant so that we can override
 # __repr__ and print out a human-readable type name
-class Word(namedtuple("Word",  # pylint:disable=R0903
+class Word(namedtuple("Word",  # suppress(R0903)
                       "type contents line col index")):
 
     """A word-type node."""
@@ -114,9 +114,9 @@ class Word(namedtuple("Word",  # pylint:disable=R0903
                                      self.index)
 
 
-# We have a class here instead of a contant so that we can override
+# We have a class here instead of a constant so that we can override
 # __repr__ and print out a human-readable type name
-class Token(namedtuple("Token",  # pylint:disable=R0903
+class Token(namedtuple("Token",  # suppress(R0903)
                        "type content line col")):
 
     """An immutable record representing a token."""
@@ -135,11 +135,11 @@ class Token(namedtuple("Token",  # pylint:disable=R0903
 
 
 # As it turns out, just using constants as class variables
-# is a lot faster than using enums. This is proably because enums
+# is a lot faster than using enums. This is probably because enums
 # do a lot of type checking to make sure that you don't compare
-# enums of different types. Since we could be analysing
+# enums of different types. Since we could be analyzing
 # quite a lot of code, performance is more important than safety here.
-class WordType(object):  # pylint:disable=R0903
+class WordType(object):  # suppress(R0903,too-few-public-methods)
 
     """A class with instance variables for word types."""
 
@@ -150,7 +150,7 @@ class WordType(object):  # pylint:disable=R0903
     CompoundLiteral = 4
 
 
-class TokenType(object):  # pylint:disable=R0903
+class TokenType(object):  # suppress(R0903,too-few-public-methods)
 
     """A class with instance variables for token types."""
 
@@ -283,7 +283,7 @@ def _make_header_body_handler(end_body_regex,
             extra_kwargs = {"footer": footer}
 
         return (token_index,
-                node_factory(header=function_call,  # pylint:disable=star-args
+                node_factory(header=function_call,
                              body=body.statements,
                              line=tokens[body_index].line,
                              col=tokens[body_index].col,
@@ -375,7 +375,7 @@ def _handle_function_call(tokens, tokens_len, index):
     In CMake, all control flow statements are also function calls, so handle
     the function call first and then direct tree construction to the
     appropriate control flow statement constructor found in
-    FUNCTION_CALL_DISAMBIGUATE
+    _FUNCTION_CALL_DISAMBIGUATE
     """
     def _end_function_call(token_index, tokens):
         """Function call termination detector."""
@@ -445,7 +445,7 @@ def _ast_worker(tokens, tokens_len, index, term):
 def _scan_for_tokens(contents):
     """Scan a string for tokens and return immediate form tokens."""
     # Regexes are in priority order. Changing the order may alter the
-    # behaviour of the lexer
+    # behavior of the lexer
     scanner = re.Scanner([
         # Things inside quotes
         (r"(?<![^\s\(])([\"\'])(?:(?=(\\?))\2.)*?\1(?![^\s\)])",
@@ -532,10 +532,8 @@ def _is_really_comment(tokens, index):
     try:
         if tokens[index].content.lstrip()[0] == "#":
             return True
-    except IndexError:  # pylint:disable=W0704
-        pass
-
-    return False
+    except IndexError:
+        return False
 
 
 class _CommentedLineRecorder(object):
@@ -550,7 +548,7 @@ class _CommentedLineRecorder(object):
 
     @staticmethod
     def maybe_start_recording(tokens, index):
-        """Return a new CommentedLineRecorder when it is time to record."""
+        """Return a new _CommentedLineRecorder when it is time to record."""
         if _is_really_comment(tokens, index):
             return _CommentedLineRecorder(index, tokens[index].line)
 
@@ -630,7 +628,7 @@ class _RSTCommentBlockRecorder(object):
 
     @staticmethod
     def maybe_start_recording(tokens, index):
-        """Return a new RSTCommentBlockRecorder when its time to record."""
+        """Return a new _RSTCommentBlockRecorder when its time to record."""
         if tokens[index].type == TokenType.BeginRSTComment:
             return _RSTCommentBlockRecorder(index, tokens[index].line)
 
@@ -673,7 +671,7 @@ class _InlineRSTRecorder(object):
 
     @staticmethod
     def maybe_start_recording(tokens, index):
-        """Return a new InlineRSTRecorder when its time to record."""
+        """Return a new _InlineRSTRecorder when its time to record."""
         if tokens[index].type == TokenType.BeginInlineRST:
             return _InlineRSTRecorder(index)
 
@@ -704,7 +702,7 @@ class _MultilineStringRecorder(object):
 
     @staticmethod
     def maybe_start_recording(tokens, index):
-        """Return a new MultilineStringRecorder when its time to record."""
+        """Return a new _MultilineStringRecorder when its time to record."""
         if _is_begin_quoted_type(tokens[index].type):
             string_type = _get_string_type_from_token(tokens[index].type)
             return _MultilineStringRecorder(index, string_type)
@@ -785,7 +783,7 @@ _RECORDERS = [
 ]
 
 
-class _EdgeCaseStrayParens(object):  # pylint:disable=R0903
+class _EdgeCaseStrayParens(object):  # suppress(R0903,too-few-public-methods)
 
     """Stateful function detecting stray comments."""
 
