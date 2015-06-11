@@ -13,14 +13,6 @@ import os
 
 import platform
 
-import shutil
-
-import subprocess
-
-import tempfile
-
-from collections import defaultdict
-
 
 def run(cont, util, shell, argv=None):
     """Set up language runtimes and pass control to python project script."""
@@ -44,6 +36,7 @@ def run(cont, util, shell, argv=None):
             root_script.write("message (${CMAKE_ROOT})")
 
         install_path = bytearray()
+
         def steal_output(process, outputs):
             """Steal output from container executor."""
             install_path.extend(outputs[1].read().strip())
