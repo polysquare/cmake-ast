@@ -8,8 +8,8 @@
 from setuptools import find_packages, setup
 
 setup(name="cmakeast",
-      version="0.0.11",
-      description="Parse a CMake file into an Abstract Syntax Tree.",
+      version="0.0.12",
+      description="""Parse a CMake file into an Abstract Syntax Tree.""",
       long_description_markdown_filename="README.md",
       author="Sam Spilsbury",
       author_email="smspillaz@gmail.com",
@@ -27,14 +27,13 @@ setup(name="cmakeast",
       url="http://github.com/polysquare/cmake-ast",
       license="MIT",
       keywords="development ast cmake",
-      packages=find_packages(exclude=["tests"]),
+      packages=find_packages(exclude=["test"]),
       install_requires=["setuptools"],
       extras_require={
-          "green": ["coverage",
-                    "testtools",
+          "green": ["testtools",
                     "shutilwhich",
                     "nose",
-                    "nose-parameterized>=0.4.0",
+                    "nose-parameterized>=0.5.0",
                     "mock",
                     "setuptools-green"],
           "polysquarelint": ["polysquare-setuptools-lint"]
@@ -44,10 +43,6 @@ setup(name="cmakeast",
               "cmake-print-ast=cmakeast.printer:main"
           ]
       },
-      dependency_links=[
-          ("https://github.com/smspillaz/nose-parameterized/tarball/"
-           "detailed-docs#egg=nose-parameterized-0.4.0"),
-      ],
       test_suite="nose.collector",
       zip_safe=True,
       include_package_data=True)

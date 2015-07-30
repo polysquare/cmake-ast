@@ -56,6 +56,8 @@ def run(cont, util, shell, argv=None):
             install_path = os.path.join(root_fs_path_bytes.decode("utf-8"),
                                         install_path.decode("utf-8")[1:])
             install_path = os.path.normpath(install_path)
+        else:
+            install_path = install_path.decode("utf-8")
 
         util.overwrite_environment_variable(shell,
                                             "CMAKE_INSTALL_PATH",

@@ -6,21 +6,26 @@ cache:
 python:
 - '2.7'
 - '3.4'
-- 'pypy'
+- pypy
 env:
-- CMAKE_VERSION="latest"
-- CMAKE_VERSION="3.0"
-- CMAKE_VERSION="2.8"
+  matrix:
+  - CMAKE_VERSION="latest"
+  - CMAKE_VERSION="3.0"
+  - CMAKE_VERSION="2.8"
+  global:
+    secure: deVt7ULz8tg1Z/X4uoh6EWf068spNV9smhjTRQOb81Q/9tWkTjDH/9gVEZpzgpbfXQI6AqkUDuZcieNWyHbPwQ91Lh7k3lNV/eaPHXyaJlzAsbGMurL9ulgkKzU4bcTSYP4PEfFPaDNgCrFNOGq6KUVZaj4XI3D/l2oqRuixpuI=
 install:
- - eval $(curl -LSs --retry 100 --connect-timeout 3 public-travis-scripts.polysquare.org/bootstrap.py | python /dev/stdin -d container -s container-setup.py -e bash -p /dev/stdout --cmake-version ${CMAKE_VERSION})
+- eval $(curl -LSs --retry 100 --connect-timeout 3 public-travis-scripts.polysquare.org/bootstrap.py
+  | python /dev/stdin -d container -s container-setup.py -e bash -p /dev/stdout --cmake-version
+  ${CMAKE_VERSION})
 script:
- - polysquare_run check/python/check.py
+- polysquare_run check/python/check.py
 before_cache:
- - polysquare_cleanup
+- polysquare_cleanup
 after_success:
- - polysquare_run coverage/python/coverage.py
+- polysquare_run coverage/python/coverage.py
 before_deploy:
- - polysquare_run deploy/python/deploy.py
+- polysquare_run deploy/python/deploy.py
 deploy:
   provider: pypi
   user:
@@ -30,3 +35,4 @@ deploy:
   on:
     repo: polysquare/cmake-ast
     branch: master
+    python: $TRAVIS_PYTHON_VERSION = "2.7" && $CMAKE_VERSION = "latest"
