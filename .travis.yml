@@ -35,4 +35,4 @@ deploy:
   on:
     repo: polysquare/cmake-ast
     branch: master
-    python: $TRAVIS_PYTHON_VERSION = "2.7" && $CMAKE_VERSION = "latest"
+    condition: $TRAVIS_PYTHON_VERSION = "2.7" && $CMAKE_VERSION = "latest"
