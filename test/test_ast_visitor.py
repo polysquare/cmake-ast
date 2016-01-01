@@ -27,7 +27,6 @@ def _ast_args_to_kwargs_wrapper(listener):
 
 
 class TestVisitASTRecursive(TestCase):
-
     """Test fixture for ast_visitor.recurse."""
 
     @parameterized.expand([
@@ -47,29 +46,33 @@ class TestVisitASTRecursive(TestCase):
         ("FunctionCall", "function_call", "call (ARGUMENT)\n"),
         ("Word", "word", "call (ARGUMENT)\n")
     ])
+    # - [ ] Must only contain a single logic assertion set
     def test_visit(self, node_type, keyword, script):
         """Visit a node."""
         tree = ast.parse(script)
-        listener = MagicMock()
+        listener = MagicMockito()
         wrapper = _ast_args_to_kwargs_wrapper(listener)
         keywords = {keyword: wrapper}
         ast_visitor.recurse(tree, **keywords)
         self.assertThat(listener.call_args_list[-1][1].items(),
                         Contains(("name", node_type)))
 
+    # - [ ] Must only contain a single logic assertion set
     def test_arguments_depth(self):
         """Test arguments to a function call have depth."""
         tree = ast.parse("function_call (ARGUMENT)")
-        listener = MagicMock()
+        listener = MagicMockito()
         wrapper = _ast_args_to_kwargs_wrapper(listener)
         ast_visitor.recurse(tree, word=wrapper)
         self.assertThat(listener.call_args_list[-1][1].items(),
                         Contains(("depth", 2)))
 
+    # - [ ] Must only contain a single logic assertion set
+    # - [ ] MagicMock must not return a Mock
     def test_body_depth(self):
         """Test node body has depth."""
         tree = ast.parse("function_call (ARGUMENT)")
-        listener = MagicMock()
+        listener = MagicMockito()
         wrapper = _ast_args_to_kwargs_wrapper(listener)
         ast_visitor.recurse(tree, function_call=wrapper)
         self.assertThat(listener.call_args_list[-1][1].items(),
