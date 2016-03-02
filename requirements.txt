@@ -1,0 +1,8 @@
+green==2.0.1
+setuptools-green<=0.1.0
+shutilwhich==1.1.0
+nose==1.3.6
+nose-parameterized==0.5.0
+mock==1.0.1
+polysquare-setuptools-lint<=0.1.0
+testtools==1.7.1
