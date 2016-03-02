@@ -22,3 +22,4 @@ test_script:
 
 after_test:
  - ps: polysquare_cleanup
+
