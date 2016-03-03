@@ -27,7 +27,6 @@ def _ast_args_to_kwargs_wrapper(listener):
 
 
 class TestVisitASTRecursive(TestCase):
-
     """Test fixture for ast_visitor.recurse."""
 
     @parameterized.expand([

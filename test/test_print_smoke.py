@@ -86,8 +86,8 @@ def _format_filename_doc(func, num, params):
     return func.__doc__.format(params[0][0][prefix:])
 
 
-class TestPrintAST(testtools.TestCase):  # suppress(R0903)
-
+# suppress(R0903,too-few-public-methods)
+class TestPrintAST(testtools.TestCase):
     """Smoke tests for printing the AST."""
 
     # pylint can get confused if we don't have an up-to-date
