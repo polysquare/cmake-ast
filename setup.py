@@ -30,13 +30,7 @@ setup(name="cmakeast",
       packages=find_packages(exclude=["test"]),
       install_requires=["setuptools"],
       extras_require={
-          "green": ["testtools",
-                    "shutilwhich",
-                    "nose",
-                    "nose-parameterized>=0.5.0",
-                    "mock",
-                    "setuptools-green"],
-          "polysquarelint": ["polysquare-setuptools-lint"]
+          "upload": ["setuptools-markdown"]
       },
       entry_points={
           "console_scripts": [

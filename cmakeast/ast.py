@@ -96,7 +96,6 @@ def _lookup_enum_in_ns(namespace, value):
 # __repr__ and print out a human-readable type name
 class Word(namedtuple("Word",  # suppress(R0903)
                       "type contents line col index")):
-
     """A word-type node."""
 
     def __repr__(self):
@@ -118,7 +117,6 @@ class Word(namedtuple("Word",  # suppress(R0903)
 # __repr__ and print out a human-readable type name
 class Token(namedtuple("Token",  # suppress(R0903)
                        "type content line col")):
-
     """An immutable record representing a token."""
 
     def __repr__(self):
@@ -140,7 +138,6 @@ class Token(namedtuple("Token",  # suppress(R0903)
 # enums of different types. Since we could be analyzing
 # quite a lot of code, performance is more important than safety here.
 class WordType(object):  # suppress(R0903,too-few-public-methods)
-
     """A class with instance variables for word types."""
 
     String = 0
@@ -151,7 +148,6 @@ class WordType(object):  # suppress(R0903,too-few-public-methods)
 
 
 class TokenType(object):  # suppress(R0903,too-few-public-methods)
-
     """A class with instance variables for token types."""
 
     QuotedLiteral = 0
@@ -537,7 +533,6 @@ def _is_really_comment(tokens, index):
 
 
 class _CommentedLineRecorder(object):
-
     """From the beginning of a comment to the end of the line."""
 
     def __init__(self, begin, line):
@@ -617,7 +612,6 @@ def _paste_tokens_line_by_line(tokens, token_type, begin, end):
 
 
 class _RSTCommentBlockRecorder(object):
-
     """From beginning of RST comment block to end of block."""
 
     def __init__(self, begin, begin_line):
@@ -661,7 +655,6 @@ class _RSTCommentBlockRecorder(object):
 
 
 class _InlineRSTRecorder(object):
-
     """From beginning of inline RST to end of inline RST."""
 
     def __init__(self, begin):
@@ -691,7 +684,6 @@ class _InlineRSTRecorder(object):
 
 
 class _MultilineStringRecorder(object):
-
     """From the beginning of a begin_quoted_literal to end_quoted_literal."""
 
     def __init__(self, begin, quote_type):
@@ -784,7 +776,6 @@ _RECORDERS = [
 
 
 class _EdgeCaseStrayParens(object):  # suppress(R0903,too-few-public-methods)
-
     """Stateful function detecting stray comments."""
 
     def __init__(self):

@@ -24,7 +24,6 @@ def parse_for_word(string):
 
 
 class TestRepresentations(TestCase):
-
     """__repr__ function on overridden named tuples."""
 
     def test_repr_word(self):
@@ -41,7 +40,6 @@ class TestRepresentations(TestCase):
 
 
 class TestTokenizer(TestCase):
-
     """Test case for tokenization functions."""
 
     @parameterized.expand([
@@ -80,7 +78,6 @@ class TestTokenizer(TestCase):
 
 
 class TestParseGeneral(TestCase):
-
     """Thing common to all parses."""
 
     @parameterized.expand([
@@ -117,7 +114,6 @@ class TestParseGeneral(TestCase):
 
 
 class TestParseWord(TestCase):
-
     """Test case for parsing individual arguments."""
 
     def test_parse_single_word(self):
@@ -250,7 +246,6 @@ class TestParseWord(TestCase):
 
 
 class TestParseFunctionCall(TestCase):
-
     """Test case for parsing function calls."""
 
     def test_parse_function_call(self):
@@ -276,8 +271,8 @@ class TestParseFunctionCall(TestCase):
                                    ast.Word))
 
 
-class TestParseBodyStatement(TestCase):  # suppress(R0903)
-
+# suppress(R0903,too-few-public-methods)
+class TestParseBodyStatement(TestCase):
     """Test parsing header/body statements generally."""
 
     def test_body_syntax_error(self):  # suppress(no-self-use)
@@ -287,7 +282,6 @@ class TestParseBodyStatement(TestCase):  # suppress(R0903)
 
 
 class TestParseForeachStatement(TestCase):
-
     """Test case for parsing foreach statements."""
 
     foreach_statement = """
@@ -326,7 +320,6 @@ class TestParseForeachStatement(TestCase):
 
 
 class TestParseWhileStatement(TestCase):
-
     """Test case for parsing while statements."""
 
     while_statement = """
@@ -365,7 +358,6 @@ class TestParseWhileStatement(TestCase):
 
 
 class TestParseFunctionDefintion(TestCase):
-
     """Test case for parsing function definitions."""
 
     function_definition = """
@@ -404,7 +396,6 @@ class TestParseFunctionDefintion(TestCase):
 
 
 class TestParseMacroDefintion(TestCase):
-
     """Test case for parsing macro definitions."""
 
     macro_definition = """
@@ -443,7 +434,6 @@ class TestParseMacroDefintion(TestCase):
 
 
 class TestParseIfBlock(TestCase):
-
     """Test case for passing if, else, else-if blocks."""
 
     if_else_if_block = """
