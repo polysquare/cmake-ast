@@ -13,7 +13,7 @@ env:
   - CMAKE_VERSION="3.0"
   - CMAKE_VERSION="2.8"
   global:
-    secure: deVt7ULz8tg1Z/X4uoh6EWf068spNV9smhjTRQOb81Q/9tWkTjDH/9gVEZpzgpbfXQI6AqkUDuZcieNWyHbPwQ91Lh7k3lNV/eaPHXyaJlzAsbGMurL9ulgkKzU4bcTSYP4PEfFPaDNgCrFNOGq6KUVZaj4XI3D/l2oqRuixpuI=
+    secure: ChZoff0thvWQHK8pfab3oaxPgud0e365g/YO7MYJ2HwWBTP9Gq96mrhganYXneKlb4YfEIN27k6XjNIDFK+Oe+Q8L/8LHU2XMdjjBtyMG7Hm6vge9Ik6oq34zC5RsTttgNs4yrq1VFcfqwMvif4kW0+LitJ5WCkpjCVQ+8RXBnU=
 install:
 - eval $(curl -LSs --retry 100 --connect-timeout 3 public-travis-scripts.polysquare.org/bootstrap.py
   | python /dev/stdin -d container -s container-setup.py -e bash -p /dev/stdout --cmake-version
