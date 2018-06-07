@@ -77,11 +77,11 @@ ToplevelBody = namedtuple("ToplevelBody", "statements")
 
 GenericBody = namedtuple("GenericBody", "statements arguments")
 
-_RE_END_IF_BODY = re.compile(r"(endif|else|elseif)")
-_RE_ENDFUNCTION = re.compile(r"endfunction")
-_RE_ENDMACRO = re.compile(r"endmacro")
-_RE_ENDFOREACH = re.compile(r"endforeach")
-_RE_ENDWHILE = re.compile(r"endwhile")
+_RE_END_IF_BODY = re.compile(r"(endif|else|elseif)", re.IGNORECASE)
+_RE_ENDFUNCTION = re.compile(r"endfunction", re.IGNORECASE)
+_RE_ENDMACRO = re.compile(r"endmacro", re.IGNORECASE)
+_RE_ENDFOREACH = re.compile(r"endforeach", re.IGNORECASE)
+_RE_ENDWHILE = re.compile(r"endwhile", re.IGNORECASE)
 _RE_QUOTE_TYPE = re.compile(r"[\"\']")
 
 
@@ -321,7 +321,7 @@ def _handle_if_block(tokens, tokens_len, body_index, function_call):
         # body
         assert _RE_END_IF_BODY.match(tokens[next_index].content)
 
-        terminator = tokens[next_index].content
+        terminator = tokens[next_index].content.lower()
         if terminator == "endif":
             next_index, footer = _handle_function_call(tokens,
                                                        tokens_len,
@@ -390,7 +390,7 @@ def _handle_function_call(tokens, tokens_len, index):
 
     # Next find a handler for the body and pass control to that
     try:
-        handler = _FUNCTION_CALL_DISAMBIGUATE[tokens[index].content]
+        handler = _FUNCTION_CALL_DISAMBIGUATE[tokens[index].content.lower()]
     except KeyError:
         handler = None
 
