@@ -106,7 +106,7 @@ class Word(namedtuple("Word",  # suppress(R0903)
                 "contents={1}, "
                 "line={2}, "
                 "col={3} "
-                "index={4} ").format(type_string,
+                "index={4})").format(type_string,
                                      self.contents,
                                      self.line,
                                      self.col,
