@@ -55,6 +55,7 @@ ToplevelBody
 """
 
 import re
+from enum import IntEnum
 
 from collections import namedtuple
 
@@ -106,7 +107,7 @@ class Word(namedtuple("Word",  # suppress(R0903)
                 "contents={1}, "
                 "line={2}, "
                 "col={3} "
-                "index={4} ").format(type_string,
+                "index={4})").format(type_string,
                                      self.contents,
                                      self.line,
                                      self.col,
@@ -137,7 +138,7 @@ class Token(namedtuple("Token",  # suppress(R0903)
 # do a lot of type checking to make sure that you don't compare
 # enums of different types. Since we could be analyzing
 # quite a lot of code, performance is more important than safety here.
-class WordType(object):  # suppress(R0903,too-few-public-methods)
+class WordType(IntEnum):  # suppress(R0903,too-few-public-methods)
     """A class with instance variables for word types."""
 
     String = 0
@@ -147,7 +148,7 @@ class WordType(object):  # suppress(R0903,too-few-public-methods)
     CompoundLiteral = 4
 
 
-class TokenType(object):  # suppress(R0903,too-few-public-methods)
+class TokenType(IntEnum):  # suppress(R0903,too-few-public-methods)
     """A class with instance variables for token types."""
 
     QuotedLiteral = 0
