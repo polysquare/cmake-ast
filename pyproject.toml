@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.2.0", "wheel", "setuptools_scm[toml]>=3.4.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cmakeast"
+authors = [{name = "Sam Spilsbury", email = "smspillaz@gmail.com"}]
+license = {text = "MIT"}
+description = "Parse a CMake file into an Abstract Syntax Tree."
+keywords = ["development", "ast", "cmake"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 2",
+    "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.1",
+    "Programming Language :: Python :: 3.2",
+    "Programming Language :: Python :: 3.3",
+    "Programming Language :: Python :: 3.4",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "License :: OSI Approved :: MIT License",
+]
+urls = {Homepage = "http://github.com/polysquare/cmake-ast"}
+dependencies = ["setuptools", "setuptools-scm"]
+dynamic = ["version"]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[project.optional-dependencies]
+upload = ["setuptools-markdown"]
+
+[project.scripts]
+cmake-print-ast = "cmakeast.printer:main"
+
+[tool.setuptools]
+zip-safe = true
+include-package-data = true
+
+[tool.setuptools.packages.find]
+exclude = ["test"]
+namespaces = false
+
+[tool.setuptools_scm]
